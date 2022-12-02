@@ -35,8 +35,29 @@ let pp_int fmt n = F.fprintf fmt "%d" n
 let print str = Format.printf "@[%s@?" str
 
 let println str = Format.printf "@[%s@." str
-                    
+
+(* Lexer tool *)                
+let tokenMemo = ref ""
+              
+let addMemo mes = tokenMemo := if !tokenMemo = "" then mes else F.sprintf "%s %s" !tokenMemo mes
+
+let clearMemo () = tokenMemo := ""
+                
+(* Other tools *)                
 let rec zip ls1 ls2 =
   match ls1,ls2 with
   | x::ls1',y::ls2' -> (x,y)::(zip ls1' ls2')
   | _,_ -> []
+
+let rec list_assoc3 key ls3 =
+  match ls3 with
+  | [] -> raise Not_found
+  | (k,a,b)::ls3 when key = k -> (a,b)
+  | _::ls3' -> list_assoc3 key ls3'
+
+let rec list_assoc3_opt key ls3 =
+  match ls3 with
+  | [] -> None
+  | (k,a,b)::ls3 when key = k -> Some (a,b)
+  | _::ls3' -> list_assoc3_opt key ls3'
+                 

@@ -1,9 +1,9 @@
-// Parser for expr
+// Qsitory Parser
 %{
   open Syntax
   open Tools
   type patexp = pat option * exp option
-              
+
   let pp_pat p = doIfDebug "PARSING" print_pat p
   let pp_expr e = doIfDebug "PARSING" print_expr e
 
