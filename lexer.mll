@@ -7,7 +7,7 @@
   module F = Format
 
   exception Issue of token list
-                  
+
   let pp str = doIfDebug "LEXING" print str
              
   (* INDENT と DEDENT トークンの発行
@@ -63,24 +63,24 @@
     pos := 0;
     inIndent := nextCharIs [' ';'\t'] lexbuf;    
     match List.hd !record <> 0 && not !inIndent with
-    | false -> pp "NEWLINE "; raise (Issue [NEWLINE])
+    | false -> addMemo "NEWLINE"; raise (Issue [NEWLINE])
     | true ->
        let (dedents,_) = popRecord [] 0 !record in
        record := [0];
-       pp "NEWLINE ";       
-       List.iter (fun _ -> pp "DEDENT ") dedents;
+       addMemo "NEWLINE";
+       List.iter (fun _ -> addMemo "DEDENT") dedents;
        raise (Issue (NEWLINE::dedents))
 
   let doEof lexbuf =
     pos := 0;
     match List.hd !record <> 0 with
-    | false -> pp "NEWLINE EOF\n\n"; raise (Issue [NEWLINE;EOF])
+    | false -> addMemo "NEWLINE EOF"; raise (Issue [NEWLINE;EOF])
     | true ->
        let (dedents,_) = popRecord [] 0 !record in
        record := [0];
-       pp "NEWLINE ";
-       List.iter (fun _ -> pp "DEDENT ") dedents;
-       pp "NEWLINE EOF\n\n";
+       addMemo "NEWLINE";
+       List.iter (fun _ -> addMemo "DEDENT") dedents;
+       addMemo "NEWLINE EOF";
        raise (Issue (NEWLINE::dedents@[NEWLINE;EOF]))
        
   let doSpaceTab lexbuf sptab =
@@ -93,12 +93,12 @@
       (* Format.printf "@[(\'%c\',L:%b,D:%b,B:%b)@." (getNextChar lexbuf) isIndentLast inDeeperIndent onBorder; *)
       match isIndentLast, inDeeperIndent, onBorder with
       | false,_,_ -> raise Exit
-      | _,true,_ -> inIndent := false; pushRecord !pos; pp "INDENT "; raise (Issue [INDENT])
+      | _,true,_ -> inIndent := false; pushRecord !pos; addMemo "INDENT"; raise (Issue [INDENT])
       | _,_,true ->
          inIndent := false;
          let (dedents,newRecord) = popRecord [] !pos !record in
          record := newRecord;
-         List.iter (fun _ -> pp "DEDENT ") dedents;
+         List.iter (fun _ -> addMemo "DEDENT") dedents;
          raise (if dedents = [] then Exit else Issue(dedents))
       | _,_,_ -> raise (ParseError "Indent mismatch")
                  
@@ -122,73 +122,73 @@ let natnum = '0' | posdigit digit*
 let float = natnum '.' digit*
                                
 rule tokens = parse
-  | "int"     { pp "tpINT "; [TpINT] }
-  | "double"  { pp "tpDOUBLE "; [TpDOUBLE] }
-  | "bool"    { pp "tpBOOL "; [TpBOOL] }
-  | "unit"    { pp "tpUNIT "; [TpUNIT] }
-  | "list"    { pp "tpLIST "; [TpLIST] }
+  | "int"     { addMemo "tpINT"; [TpINT] }
+  | "double"  { addMemo "tpDOUBLE"; [TpDOUBLE] }
+  | "bool"    { addMemo "tpBOOL"; [TpBOOL] }
+  | "unit"    { addMemo "tpUNIT"; [TpUNIT] }
+  | "list"    { addMemo "tpLIST"; [TpLIST] }
   
-  | "true"    { pp "TRUE "; [TRUE] }
-  | "false"   { pp "FALSE "; [FALSE] }
-  | "while"   { pp "WHILE "; [WHILE] }
-  | "for"     { pp "FOR "; [FOR] }
-  | "fordict" { pp "FORDICT "; [FORDICT] }
-  | "if"      { pp "IF "; [IF]  }
-  | "else"    { pp "ELSE "; [ELSE] }
-  | "return"  { pp "RETURN "; [RETURN] }
-  | "struct"  { pp "STRUCT "; [STRUCT] }  
-  | "fun"     { pp "FUN "; [FUN] }
-  | "def"     { pp "DEF "; [DEF] }  
-  | "match"   { pp "MATCH "; [MATCH] }
-  | "with"    { pp "WITH "; [WITH] }
-  | "in"      { pp "IN "; [IN] }  
-  | "nil"     { pp "NIL "; [NIL] }
-  | "null"    { pp "NULL "; [NULL] }
-  | "not"     { pp "NOT "; [NOT] }
-  | "and"     { pp "AND "; [AND] }  
-  | "or"      { pp "OR "; [OR] }  
-  | "+="      { pp "PLUSEQ "; [PLUSEQ] }
-  | "-="      { pp "MINUSEQ "; [MINUSEQ] }
-  | ".-="     { pp "DOTMINUSEQ "; [DOTMINUSEQ] }  
-  | "*="      { pp "MULEQ "; [MULEQ] }
-  | "/="      { pp "DIVEQ "; [DIVEQ] }
-  | '+'       { pp "PLUS "; [PLUS] }
-  | '-'       { pp "MINUS "; [MINUS] }
-  | ".-"      { pp "DOTMINUS "; [DOTMINUS] }  
-  | '*'       { pp "AST "; [AST] }
-  | '('       { pp "LPAREN "; [LPAREN] }
-  | ')'       { pp "RPAREN "; [RPAREN] }
-  | "["       { pp "LBRACKET "; [LBRACKET] }
-  | "]"       { pp "RBRACKET "; [RBRACKET] }
-  | '='       { pp "EQ "; [EQ] }
-  | "=="      { pp "EQEQ "; [EQEQ] }
-  | "!="      { pp "NEQ "; [NEQ] }  
-  | '<'       { pp "LT "; [LT] }
-  | '>'       { pp "GT "; [GT] }
-  | "<="      { pp "LE "; [LE] }
-  | ">="      { pp "GE "; [GE] }  
-  | "->"      { pp "ARROW "; [ARROW] }
-  | '|'       { pp "BAR "; [BAR] }
-  | ':'       { pp "COLON "; [COLON] }
-  | ';'       { pp "SEMICOLON "; [SEMICOLON] }
-  | '.'       { pp "DOT "; [DOT] }
-  | ".."      { pp "DOTDOT "; [DOTDOT] }
-  | ','       { pp "COMMA "; [COMMA] }  
-  | "_"       { pp "WILD "; [WILD] }
+  | "true"    { addMemo "TRUE"; [TRUE] }
+  | "false"   { addMemo "FALSE"; [FALSE] }
+  | "while"   { addMemo "WHILE"; [WHILE] }
+  | "for"     { addMemo "FOR"; [FOR] }
+  | "fordict" { addMemo "FORDICT"; [FORDICT] }
+  | "if"      { addMemo "IF"; [IF]  }
+  | "else"    { addMemo "ELSE"; [ELSE] }
+  | "return"  { addMemo "RETURN"; [RETURN] }
+  | "struct"  { addMemo "STRUCT"; [STRUCT] }  
+  | "fun"     { addMemo "FUN"; [FUN] }
+  | "def"     { addMemo "DEF"; [DEF] }  
+  | "match"   { addMemo "MATCH"; [MATCH] }
+  | "with"    { addMemo "WITH"; [WITH] }
+  | "in"      { addMemo "IN"; [IN] }  
+  | "nil"     { addMemo "NIL"; [NIL] }
+  | "null"    { addMemo "NULL"; [NULL] }
+  | "not"     { addMemo "NOT"; [NOT] }
+  | "and"     { addMemo "AND"; [AND] }  
+  | "or"      { addMemo "OR"; [OR] }  
+  | "+="      { addMemo "PLUSEQ"; [PLUSEQ] }
+  | "-="      { addMemo "MINUSEQ"; [MINUSEQ] }
+  | ".-="     { addMemo "DOTMINUSEQ"; [DOTMINUSEQ] }  
+  | "*="      { addMemo "MULEQ"; [MULEQ] }
+  | "/="      { addMemo "DIVEQ"; [DIVEQ] }
+  | '+'       { addMemo "PLUS"; [PLUS] }
+  | '-'       { addMemo "MINUS"; [MINUS] }
+  | ".-"      { addMemo "DOTMINUS"; [DOTMINUS] }  
+  | '*'       { addMemo "AST"; [AST] }
+  | '('       { addMemo "LPAREN"; [LPAREN] }
+  | ')'       { addMemo "RPAREN"; [RPAREN] }
+  | "["       { addMemo "LBRACKET"; [LBRACKET] }
+  | "]"       { addMemo "RBRACKET"; [RBRACKET] }
+  | '='       { addMemo "EQ"; [EQ] }
+  | "=="      { addMemo "EQEQ"; [EQEQ] }
+  | "!="      { addMemo "NEQ"; [NEQ] }  
+  | '<'       { addMemo "LT"; [LT] }
+  | '>'       { addMemo "GT"; [GT] }
+  | "<="      { addMemo "LE"; [LE] }
+  | ">="      { addMemo "GE"; [GE] }  
+  | "->"      { addMemo "ARROW"; [ARROW] }
+  | '|'       { addMemo "BAR"; [BAR] }
+  | ':'       { addMemo "COLON"; [COLON] }
+  | ';'       { addMemo "SEMICOLON"; [SEMICOLON] }
+  | '.'       { addMemo "DOT"; [DOT] }
+  | ".."      { addMemo "DOTDOT"; [DOTDOT] }
+  | ','       { addMemo "COMMA"; [COMMA] }  
+  | "_"       { addMemo "WILD"; [WILD] }
   | ident0    { let id = Lexing.lexeme lexbuf in
-                doIfDebug "LEXING" (F.printf "@[Id(%s)@? ") id;
+                addMemo (F.sprintf "Id(%s)" id);
                 [IDENT0 id] }
   | ident1    { let id = Lexing.lexeme lexbuf in
-                doIfDebug "LEXING" (F.printf "@[ID(%s)@? ") id;
+                addMemo (F.sprintf "ID(%s)" id);
                 [IDENT1 id] }
   | string    { let str = Lexing.lexeme lexbuf in
-                doIfDebug "LEXING" (F.printf "@[STRING(%s)@? ") str;
+                addMemo (F.sprintf "STRING(%s) " str);
                 [STRING str] }
   | float     { let f = float_of_string (Lexing.lexeme lexbuf) in
-                doIfDebug "LEXING" (F.printf "@[FLOAT(%f)@? ") f;
+                addMemo (F.sprintf "FLOAT(%f)" f);
                 [FLOAT f] }
   | natnum    { let n = int_of_string (Lexing.lexeme lexbuf) in
-                doIfDebug "LEXING" (F.printf "@[INT(%d)@? ") n;
+                addMemo (F.sprintf "INT(%d)" n);
                 [INT n] }
   | eof       { try doEof lexbuf with Issue toks -> toks }
   | '\n'      { try doNewLine lexbuf with Issue toks -> toks }

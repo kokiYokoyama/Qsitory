@@ -21,25 +21,36 @@ let inputstr_file filename =
 let parse str =
   let cache =
     let l = ref [] in
-    fun lexbuf -> match !l with
-                  | x::xs -> l := xs; x
-                  | [] -> match Lexer.tokens lexbuf with
-                          | [] -> print_endline "\nFAIL\n"; failwith ""
-                          | x::xs -> l := xs; x
+    fun lexbuf ->
+    match !l with
+    | x::xs -> l := xs; x
+    | [] ->
+       match Lexer.tokens lexbuf with
+       | [] -> failwith ""
+       | x::xs -> l := xs; x
   in
   let lexbuf = Lexing.from_string str in
   Lexer.inIndent := Lexer.nextCharIs [' ';'\t'] lexbuf;
   try
+    doIfDebug "LEXING" print_endline ">> Input";
+    doIfDebug "LEXING" (F.printf "@[%S@.") str;
+    
     doIfDebug "LEXING" print_endline ">> Lexed Result";
-    Parser.main cache lexbuf
+    clearMemo ();
+    let e = Parser.main cache lexbuf in
+    doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
+    e
   with
   | Parsing.Parse_error ->
-      F.printf "@[\n\nParse error: \"%s\"@." (Lexing.lexeme lexbuf);
-      exit 0
+     doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
+     F.printf "@[\n\nParse error: \"%s\"@." (Lexing.lexeme lexbuf);
+     exit 0
   | ParseError mes ->
+     doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
      F.printf "@[\n\nParse error: %s@." mes;
      exit 0
   | _ ->
+     doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
      F.printf "@[\n\nUnknown Parse error: \"%s\"@." (Lexing.lexeme lexbuf);
      exit 0
 
@@ -69,7 +80,6 @@ let interpreter filename =
     doIfDebug "PARSING" print_endline ">> Parsed Result (internal data)";
     doIfDebug "PARSING" (F.printf "@[%a\n@." (pp_list "" "\n" (fun _ -> print_expr))) ee; (* expr 型 e を表示する *)
     main_eval ee [] []          
-            
         
     (*
     match (Syntax.tval e [] [] 0) with

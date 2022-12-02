@@ -17,10 +17,14 @@ let parse_opt str =
   in
   let lexbuf = Lexing.from_string str in
   try
+    Lexer.inIndent := Lexer.nextCharIs [' ';'\t'] lexbuf;
     Some (Parser.main cache lexbuf)
   with
-  | _ -> None (* Parse error *)
+  | _ ->
+     (* doIfDebug "LEXING" print_newline (); *)
+     None (* Parse error *)
 ;;
+
 (* Interactive Interpreter
 Prepare a scanner sc
 (a) Scan one input line under the default prompt "##" & record the line to sc.input
@@ -34,8 +38,7 @@ Prepare a scanner sc
 (b1) 空文字列 --> 入力終了． input をパース
 (b1.1) パース成功 --> eval して結果を表示．(a)に戻る
 (b1.2) パース失敗 --> fail．(a) に戻る
-(b2) 最初の1文字がスペースかタブ --> 続行．input に追記．(b) に戻る
-(b3) それ以外 --> fail．(a) に戻る
+(b2) それ以外 --> 続行．input に追記．(b) に戻る
 *)
 exception GotoNextA
 exception GotoNextB
@@ -46,10 +49,11 @@ type scanner =
     mutable readFinish: bool;
     mutable input: string;
     mutable line: string;
-    (* env と tenv はここに入れる *)
+    mutable env: Program.env;
+    mutable tenv: Program.tenv;
   }
 ;;
-let sc: scanner = { freshLine = true; readFinish = false; input = ""; line = "" }
+let sc: scanner = { freshLine = true; readFinish = false; input = ""; line = ""; env = []; tenv = [] }
 ;;
 let resetScanner() =
   sc.freshLine <- true;
@@ -76,61 +80,72 @@ special :=
     (":?", "Help", exec_help);
   ]
 ;;
-let checkSpecial () =
-  try
-    let (_,exec) = list_assoc3 sc.line !special in
-    exec ();
-    raise GotoNextA
-  with
-  | Not_found -> ()
+type linestate = Normal | Empty | Ident | Special of string * (unit->unit)
 ;;
-
+let analyzeLine str =
+  let isIndent = if str = "" then false else List.mem (String.get sc.line 0) [' ';'\t'] in
+  match str = "", isIndent, list_assoc3_opt str !special with
+  | true,_,_ -> Empty
+  | _,true,_ -> Ident
+  | _,_,Some(sp,com) -> Special (sp,com)
+  | _,_,_ -> Normal
+;;
 let interpreter () =
   F.printf "@[*****************************@.";
   F.printf "@[Interactive Qsitory interpreter@.";
   doIfDebug "LEXING" F.printf "@[- Lexing debug mode: ON@.";
   doIfDebug "PARSING" F.printf "@[- Parsing debug mode: ON@.";  
   F.printf "@[*****************************\n@.";
-  let showPrompt () = F.printf "@[%s @?" (if sc.freshLine then "##" else ">>") in
-  let showFail () = F.printf "@[Unexpected input (illegal indent)@?" in
+  let showPrompt () = F.printf "@[%s @?" (if sc.freshLine then "##" else "..") in
+  let showFail mes = F.printf "@[Unexpected Input (%s)@." mes in
   let parse_then_EvalAndGotoNextA str =
+    clearMemo ();
     match parse_opt str with
     | Some ee ->
-       F.printf "@[%a@." (pp_list "" "\n" P.pp_expr) ee;
+       doIfDebug "LEXING" (F.printf "@[Token: %s@.") !tokenMemo;
+       doIfDebug "PARSING" (F.printf "@[Expr: %a@." (pp_list "" "\n" P.pp_expr)) ee;
+       F.printf "@[Env : [%a]@." Pprint.pp_env sc.env;
+       F.printf "@[TEnv: [%a]@." Pprint.pp_tenv sc.tenv;       
        (* eval *)
-       (* env と tenv を更新して表示 *)
        resetScanner(); 
        raise GotoNextA
-       
     | None -> ()       
   in
   while true do
     try
       (* (a) *)
       showPrompt ();
-      sc.line <- read_line ();
-      (* (a1) *)
-      if sc.line = "" then raise GotoNextA else ();
-      (* (a2) *)
-      if List.mem (String.get sc.line 0) [' ';'\t'] then (showFail(); raise GotoNextA) else ();
-      checkSpecial ();
-      parse_then_EvalAndGotoNextA sc.line;
-      (* (b) *)
-      sc.freshLine <- false;
-      while not (sc.readFinish) do
-        try
-          showPrompt ();
-          sc.line <- read_line ();
-          (* (b1) *)
-          if sc.line = "" then parse_then_EvalAndGotoNextA sc.input else (showFail(); raise GotoNextA);
-          (* (b2) *)
-          if List.mem (String.get sc.line 0) [' ';'\t'] then (sc.input <- sc.input ^ sc.line; raise GotoNextB) else ();
-          (* (b3) *)
-          showFail(); raise GotoNextA
-        with
-        | GotoNextB -> ()
-      done
+      sc.line <- F.sprintf "%s" (read_line ()) ;
+      match analyzeLine sc.line with
+      | Empty -> raise GotoNextA (* (a1) *)
+      | Ident -> showFail "Illegal Indent"; raise GotoNextA (* (a2) *)
+      | Special(_,command) -> command () (* (a3) *)
+      | Normal -> (* (a4) *)
+         sc.input <- F.sprintf "%s" sc.line;
+         parse_then_EvalAndGotoNextA sc.input;
+         (* (b) *)
+         sc.freshLine <- false;
+         while not (sc.readFinish) do
+           try
+             showPrompt ();
+             sc.line <- F.sprintf "%s" (read_line ()) ;
+             match analyzeLine sc.line with
+             | Special(_,command) -> command ()               
+             | Empty -> (* (b1) *)
+                sc.input <- sc.input ^ "\n";
+                F.printf "@[Input: %S@." sc.input;
+                parse_then_EvalAndGotoNextA sc.input;
+                doIfDebug "LEXING" (F.printf "@[Token: %s@.") !tokenMemo;
+                showFail "Parsing Failure";
+                raise GotoNextA 
+             | _ -> (* (b2) *)
+                sc.input <- F.sprintf "%s\n%s" sc.input sc.line;
+                raise GotoNextB 
+           with
+           | GotoNextB -> ()
+         done
     with
-    | GotoNextA -> resetScanner ()
+    | GotoNextA ->       
+       resetScanner ()
   done
 ;;
