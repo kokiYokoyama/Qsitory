@@ -2,13 +2,13 @@
 
 ## What is going this project
 
-This project operates a new programming language Qsitory!
+*This project operates a new programming language Qsitory!*
 
-you can get an interpreter about Qsitory and use it as a programing language
+*you can get an interpreter about Qsitory and use it as a programing language*
 
 ## Why is Qsitory benefit
 
-Qsitory has a few features like other languages do not have.
+**Qsitory has a few features like other languages do not have.**
 
 ### multidimensional 'enhanced roop statement'
 
@@ -22,7 +22,7 @@ Generally, the structure has unchanging after definition. But, Qsitory enabled c
 ## How about using Qsitory
 
 <details>
-###<summary>windows</summary>
+<summary>**windows**</summary>
 
 0. you should download their item before using Qsitory
 
@@ -44,7 +44,9 @@ Cygwin64>>opam install menhir
 
 3. input their code
 
-#### code
+<details>
+<summary>*code*</summary>
+
    cd 'to Qsitory-main path'
    
   opam switch
@@ -55,7 +57,10 @@ Cygwin64>>opam install menhir
 
 </details>
 
-### mac
+</details>
+
+<details>
+<summary>**mac**</summary>
 
 0. you should download their item before using Qsitory
 
@@ -77,7 +82,9 @@ Terminal>>opam install menhir
 
 3. input their code
 
-#### code
+<details>
+<summary>*code*</summary>
+
    cd 'to Qsitory-main path'
    
   opam switch
@@ -86,10 +93,13 @@ Terminal>>opam install menhir
    
    qsitory -f 'your program's text file names'
 
+</details>
+
+</details>
 ## Where is Qsitory's help
 
-In preparation. Please wait
+*In preparation. Please wait*
 
 ## About Qsitory's developer
 
-In preparation. Please wait
+*In preparation. Please wait*
