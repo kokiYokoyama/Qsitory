@@ -24,7 +24,7 @@
 <details>
 <summary>windows</summary>
 
-**0. you should download their item before using Qsitory**
+### 0. you should download their item before using Qsitory
 
    #### download gnuWin32 and set PATH to use the 'make' command
 
@@ -38,11 +38,11 @@
 
          Cygwin64>>opam install menhir
 
-**1. Download the zip file and expand C: OCaml64/home/'username'...**
+### 1. Download the zip file and expand C: OCaml64/home/'username'...
 
-**2. open Cygwin64 Terminal**
+### 2. open Cygwin64 Terminal
 
-**3. input their code**
+### 3. input their code
 
     cd 'to Qsitory-main path'
 
@@ -72,11 +72,11 @@
 
          Terminal>>opam install menhir
 
-**1. Download the zip file and expand**
+### 1. Download the zip file and expand
 
-**2. Terminal**
+### 2. Terminal
 
-**3. input their code**
+### 3. input their code
 
     cd 'to Qsitory-main path'
    
