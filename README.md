@@ -38,11 +38,11 @@ https://fdopen.github.io/opam-repository-mingw/installation/
 
 Cygwin64>>opam install menhir
 
-_ 1. Download the zip file and expand C: OCaml64/home/'username'... _
+### 1. Download the zip file and expand C: OCaml64/home/'username'... ###
 
-_ 2. open Cygwin64 Terminal _
+### 2. open Cygwin64 Terminal ###
 
-_ 3. input their code _
+### 3. input their code ###
 
 **code**
 
@@ -74,11 +74,11 @@ Terminal>>brew install opam
 
 Terminal>>opam install menhir
 
-_ 1. Download the zip file and expand _
+### 1. Download the zip file and expand ###
 
-_ 2. Terminal _
+### 2. Terminal ###
 
-_ 3. input their code _
+### 3. input their code ###
 
 **code**
 
