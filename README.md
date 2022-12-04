@@ -22,8 +22,7 @@ Generally, the structure has unchanging after definition. But, Qsitory enabled c
 ## How about using Qsitory
 
 <details>
-<summary>### windows</summary>
-<div>
+###<summary>windows</summary>
 
 0. you should download their item before using Qsitory
 
