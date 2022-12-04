@@ -24,6 +24,7 @@
 <details>
 <summary>windows</summary>
 
+
 0. you should download their item before using Qsitory
 
 #### download gnuWin32 and set PATH to use the 'make' command
@@ -44,20 +45,21 @@ Cygwin64>>opam install menhir
 
 3. input their code
 
-**code
+**code**
 
-cd 'to Qsitory-main path'
+**cd 'to Qsitory-main path'**
 
-opam switch
+**opam switch**
   
-make
+**make**
    
-qsitory -f ''your program's text file name''**
+**qsitory -f ''your program's text file name''**
 
 </details>
 
 <details>
 <summary>mac</summary>
+
 
 0. you should download their item before using Qsitory
 
@@ -79,15 +81,15 @@ Terminal>>opam install menhir
 
 3. input their code
 
-**code
+**code**
 
-cd 'to Qsitory-main path'
+**cd 'to Qsitory-main path'**
    
-opam switch
+**opam switch**
   
-make
+**make**
    
-qsitory -f 'your program's text file names'**
+**qsitory -f 'your program's text file names'**
 
 </details>
 
