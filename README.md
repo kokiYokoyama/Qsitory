@@ -24,8 +24,7 @@
 <details>
 <summary>windows</summary>
 
-
-0. you should download their item before using Qsitory
+### 0. you should download their item before using Qsitory ###
 
 #### download gnuWin32 and set PATH to use the 'make' command
 
@@ -39,11 +38,11 @@ https://fdopen.github.io/opam-repository-mingw/installation/
 
 Cygwin64>>opam install menhir
 
-1. Download the zip file and expand C: OCaml64/home/'username'...
+_ 1. Download the zip file and expand C: OCaml64/home/'username'... _
 
-2. open Cygwin64 Terminal
+_ 2. open Cygwin64 Terminal _
 
-3. input their code
+_ 3. input their code _
 
 **code**
 
@@ -61,7 +60,7 @@ Cygwin64>>opam install menhir
 <summary>mac</summary>
 
 
-0. you should download their item before using Qsitory
+### 0. you should download their item before using Qsitory ###
 
 #### download Homebrew and set PATH to use the 'make' command
 
@@ -75,11 +74,11 @@ Terminal>>brew install opam
 
 Terminal>>opam install menhir
 
-1. Download the zip file and expand
+_ 1. Download the zip file and expand _
 
-2. Terminal
+_ 2. Terminal _
 
-3. input their code
+_ 3. input their code _
 
 **code**
 
