@@ -1,4 +1,4 @@
-# Thank you for coming Qsitory project
+# <span style="color: blue; ">Thank you for coming Qsitory project!</span>
 
 ## What is going this project
 
