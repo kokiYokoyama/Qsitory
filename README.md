@@ -74,7 +74,7 @@
 
 ### 1. Download the zip file and expand
 
-### 2. Terminal
+### 2. open terminal
 
 ### 3. input their code
 
