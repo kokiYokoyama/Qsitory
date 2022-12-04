@@ -2,45 +2,45 @@
 
 ## What is going this project
 
-This project operate a new programming language Qsitory!
-you can get interpreter about Qsitory and use as a programing language
+This project operates a new programming language Qsitory!
+you can get an interpreter about Qsitory and use it as a programing language
 
 ## Why is Qsitory benefit
 
-Qsitory has a few feature like other language do not have.
+Qsitory has a few features like other languages do not have.
 
 ### multidimensional 'enhanced roop statement'
 
-It is like Java's enhanced roop statement and Python's 'for statement'.
-Enhanced roop statement is take an element from a list and put it in a variable and repeat. but also Qsitory enabled multiple lists.so you can elininate the need to write many similar 'for statement'!
+It is like Java's 'enhanced roop statement' and Python's 'for statement'.
+'Enhanced roop statement' is taking an element from a list and putting it in a variable and repeating. but also Qsitory enabled multiple lists.so you can eliminate the need to write many similar 'for statement'!
 
 ### dynamic structure
 
-Generally, structure has unchanging after definition.But,Qsitory enabled change structure's field any time. so whenever you be forced add field in structure by means of update you may not need modify every part of this structure is involved in code.
+Generally, the structure has unchanging after definition. But, Qsitory enabled change structure's field at any time. so whenever you be forced to add a field in the structure through an update you may not need to modify every part of this structure involved in the code.
 
-## How about use Qsitory
+## How about using Qsitory
 
 ### windows
 
-0. you should download there item before use Qsitory
+0. you should download their item before using Qsitory
 
-#### download gnuWin32 and set PATH to use make comand
+#### download gnuWin32 and set PATH to use the 'make' command
 
 https://gnuwin32.sourceforge.net/packages/make.htm
 
-#### download OCaml64 to compile Qsitory program
+#### download OCaml64 to compile the Qsitory program
 
 https://fdopen.github.io/opam-repository-mingw/installation/
 
-#### download menhir to run Qsitory parser
+#### download menhir to run the Qsitory parser
 
 Cygwin64>>opam install menhir
 
-1. Download zip faile and exopand C:OCaml64/home/'username'...
+1. Download the zip file and expand C: OCaml64/home/'username'...
 
 2. open Cygwin64 Terminal
 
-3. input there code
+3. input their code
 
 #### code
    cd 'to Qsitory-main path'
