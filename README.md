@@ -1,4 +1,4 @@
-# <span style="color: blue; ">Thank you for coming Qsitory project!</span>
+# Thank you for coming Qsitory project!
 
 ## What is going this project
 
@@ -21,7 +21,9 @@ Generally, the structure has unchanging after definition. But, Qsitory enabled c
 
 ## How about using Qsitory
 
-### windows
+<details>
+<summary>### windows</summary>
+<div>
 
 0. you should download their item before using Qsitory
 
@@ -51,6 +53,8 @@ Cygwin64>>opam install menhir
    make
    
    qsitory -f ''your program's text file name''
+
+</details>
 
 ### mac
 
