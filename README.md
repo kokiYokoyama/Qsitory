@@ -8,7 +8,7 @@
 
 ## Why is Qsitory benefit
 
-**Qsitory has a few features like other languages do not have.**
+*Qsitory has a few features like other languages do not have.*
 
 ### multidimensional 'enhanced roop statement'
 
@@ -22,7 +22,7 @@ Generally, the structure has unchanging after definition. But, Qsitory enabled c
 ## How about using Qsitory
 
 <details>
-<summary>**windows**</summary>
+<summary>windows</summary>
 
 0. you should download their item before using Qsitory
 
@@ -45,22 +45,22 @@ Cygwin64>>opam install menhir
 3. input their code
 
 <details>
-<summary>*code*</summary>
+<summary>code</summary>
 
-   cd 'to Qsitory-main path'
-   
-  opam switch
+cd 'to Qsitory-main path'
+
+opam switch
   
-   make
+make
    
-   qsitory -f ''your program's text file name''
+qsitory -f ''your program's text file name''
 
 </details>
 
 </details>
 
 <details>
-<summary>**mac**</summary>
+<summary>mac</summary>
 
 0. you should download their item before using Qsitory
 
@@ -83,19 +83,20 @@ Terminal>>opam install menhir
 3. input their code
 
 <details>
-<summary>*code*</summary>
+<summary>code</summary>
 
-   cd 'to Qsitory-main path'
+cd 'to Qsitory-main path'
    
-  opam switch
+opam switch
   
-   make
+make
    
-   qsitory -f 'your program's text file names'
+qsitory -f 'your program's text file names'
 
 </details>
 
 </details>
+
 ## Where is Qsitory's help
 
 *In preparation. Please wait*
