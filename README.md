@@ -3,6 +3,7 @@
 ## What is going this project
 
 This project operates a new programming language Qsitory!
+
 you can get an interpreter about Qsitory and use it as a programing language
 
 ## Why is Qsitory benefit
@@ -44,11 +45,48 @@ Cygwin64>>opam install menhir
 
 #### code
    cd 'to Qsitory-main path'
+   
+  opam switch
+  
    make
+   
    qsitory -f ''your program's text file name''
 
 ### mac
 
+0. you should download their item before using Qsitory
+
+#### download Homebrew and set PATH to use the 'make' command
+
+https://brew.sh/index_ja
+
+#### download OCaml to compile the Qsitory program
+
+Terminal>>brew install opam
+
+#### download menhir to run the Qsitory parser
+
+Terminal>>opam install menhir
+
+1. Download the zip file and expand
+
+2. Terminal
+
+3. input their code
+
+#### code
+   cd 'to Qsitory-main path'
+   
+  opam switch
+  
+   make
+   
+   qsitory -f 'your program's text file names'
+
 ## Where is Qsitory's help
 
+In preparation. Please wait
+
 ## About Qsitory's developer
+
+In preparation. Please wait
