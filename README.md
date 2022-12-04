@@ -26,17 +26,17 @@
 
 ### 0. you should download their item before using Qsitory ###
 
-#### download gnuWin32 and set PATH to use the 'make' command
+    #### download gnuWin32 and set PATH to use the 'make' command
 
-https://gnuwin32.sourceforge.net/packages/make.htm
+         https://gnuwin32.sourceforge.net/packages/make.htm
 
-#### download OCaml64 to compile the Qsitory program
+    #### download OCaml64 to compile the Qsitory program
 
-https://fdopen.github.io/opam-repository-mingw/installation/
+         https://fdopen.github.io/opam-repository-mingw/installation/
 
-#### download menhir to run the Qsitory parser
+    #### download menhir to run the Qsitory parser
 
-Cygwin64>>opam install menhir
+         Cygwin64>>opam install menhir
 
 ### 1. Download the zip file and expand C: OCaml64/home/'username'... ###
 
@@ -62,17 +62,17 @@ Cygwin64>>opam install menhir
 
 ### 0. you should download their item before using Qsitory ###
 
-#### download Homebrew and set PATH to use the 'make' command
+    #### download Homebrew and set PATH to use the 'make' command
 
-https://brew.sh/index_ja
+         https://brew.sh/index_ja
 
-#### download OCaml to compile the Qsitory program
+    #### download OCaml to compile the Qsitory program
 
-Terminal>>brew install opam
+         Terminal>>brew install opam
 
-#### download menhir to run the Qsitory parser
+    #### download menhir to run the Qsitory parser
 
-Terminal>>opam install menhir
+         Terminal>>opam install menhir
 
 ### 1. Download the zip file and expand ###
 
