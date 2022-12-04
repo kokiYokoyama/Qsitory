@@ -24,35 +24,33 @@
 <details>
 <summary>windows</summary>
 
-### 0. you should download their item before using Qsitory ###
+**0. you should download their item before using Qsitory**
 
-    #### download gnuWin32 and set PATH to use the 'make' command
+   #### download gnuWin32 and set PATH to use the 'make' command
 
          https://gnuwin32.sourceforge.net/packages/make.htm
 
-    #### download OCaml64 to compile the Qsitory program
+   #### download OCaml64 to compile the Qsitory program
 
          https://fdopen.github.io/opam-repository-mingw/installation/
 
-    #### download menhir to run the Qsitory parser
+   #### download menhir to run the Qsitory parser
 
          Cygwin64>>opam install menhir
 
-### 1. Download the zip file and expand C: OCaml64/home/'username'... ###
+**1. Download the zip file and expand C: OCaml64/home/'username'...**
 
-### 2. open Cygwin64 Terminal ###
+**2. open Cygwin64 Terminal**
 
-### 3. input their code ###
+**3. input their code**
 
-**code**
+    cd 'to Qsitory-main path'
 
-**cd 'to Qsitory-main path'**
-
-**opam switch**
+    opam switch
   
-**make**
+    make
    
-**qsitory -f ''your program's text file name''**
+    qsitory -f ''your program's text file name''
 
 </details>
 
@@ -62,33 +60,31 @@
 
 ### 0. you should download their item before using Qsitory ###
 
-    #### download Homebrew and set PATH to use the 'make' command
+   #### download Homebrew and set PATH to use the 'make' command
 
          https://brew.sh/index_ja
 
-    #### download OCaml to compile the Qsitory program
+   #### download OCaml to compile the Qsitory program
 
          Terminal>>brew install opam
 
-    #### download menhir to run the Qsitory parser
+   #### download menhir to run the Qsitory parser
 
          Terminal>>opam install menhir
 
-### 1. Download the zip file and expand ###
+**1. Download the zip file and expand**
 
-### 2. Terminal ###
+**2. Terminal**
 
-### 3. input their code ###
+**3. input their code**
 
-**code**
-
-**cd 'to Qsitory-main path'**
+    cd 'to Qsitory-main path'
    
-**opam switch**
+    opam switch
   
-**make**
+    make
    
-**qsitory -f 'your program's text file names'**
+    qsitory -f 'your program's text file names'
 
 </details>
 
