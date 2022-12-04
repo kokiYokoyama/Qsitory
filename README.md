@@ -12,12 +12,12 @@
 
 ### multidimensional 'enhanced roop statement'
 
-It is like Java's 'enhanced roop statement' and Python's 'for statement'.
-'Enhanced roop statement' is taking an element from a list and putting it in a variable and repeating. but also Qsitory enabled multiple lists.so you can eliminate the need to write many similar 'for statement'!
+*It is like Java's 'enhanced roop statement' and Python's 'for statement'.
+'Enhanced roop statement' is taking an element from a list and putting it in a variable and repeating. but also Qsitory enabled multiple lists.so you can eliminate the need to write many similar 'for statement'!*
 
 ### dynamic structure
 
-Generally, the structure has unchanging after definition. But, Qsitory enabled change structure's field at any time. so whenever you be forced to add a field in the structure through an update you may not need to modify every part of this structure involved in the code.
+*Generally, the structure has unchanging after definition. But, Qsitory enabled change structure's field at any time. so whenever you be forced to add a field in the structure through an update you may not need to modify every part of this structure involved in the code.*
 
 ## How about using Qsitory
 
@@ -44,8 +44,7 @@ Cygwin64>>opam install menhir
 
 3. input their code
 
-<details>
-<summary>code</summary>
+**code
 
 cd 'to Qsitory-main path'
 
@@ -53,9 +52,7 @@ opam switch
   
 make
    
-qsitory -f ''your program's text file name''
-
-</details>
+qsitory -f ''your program's text file name''**
 
 </details>
 
@@ -82,8 +79,7 @@ Terminal>>opam install menhir
 
 3. input their code
 
-<details>
-<summary>code</summary>
+**code
 
 cd 'to Qsitory-main path'
    
@@ -91,9 +87,7 @@ opam switch
   
 make
    
-qsitory -f 'your program's text file names'
-
-</details>
+qsitory -f 'your program's text file names'**
 
 </details>
 
