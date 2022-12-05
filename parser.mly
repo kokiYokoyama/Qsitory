@@ -183,7 +183,7 @@ patexp:
   | NULL           { packExp P.Null }    
   | LPAREN; RPAREN { packExp P.Null }
   | LPAREN; q = patexp; RPAREN { q }
-  | LPAREN; q1 = patexp; COMMA; q2 = patexp; qq = nonempty_list(COMMA; q = patexp {q}); RPAREN
+  | LPAREN; q1 = patexp; COMMA; q2 = patexp; qq = list(COMMA; q = patexp {q}); RPAREN
       { let p:pat = P.Tuple (List.fold_right (fun q pp -> (unpackPat q)::pp) (q1::q2::qq) []) in 
         let e:exp = P.Tuple (List.fold_right (fun q ee -> (unpackExp q)::ee) (q1::q2::qq) []) in 
         packPatExp p e }
