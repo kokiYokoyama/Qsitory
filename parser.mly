@@ -179,14 +179,17 @@ patexp:
       { let p:pat = List.fold_right (fun q p:pat -> P.Cons(unpackPat q,p)) qq pNil in
         let e:exp = List.fold_right (fun q e:exp -> P.Cons(unpackExp q,e)) qq eNil in
         packPatExp p e }
-/// Null / Single / Tuple
+/// Tuple / Null / Single
   | NULL           { packExp P.Null }    
   | LPAREN; RPAREN { packExp P.Null }
   | LPAREN; q = patexp; RPAREN { q }
   | LPAREN; q1 = patexp; COMMA; q2 = patexp; qq = list(COMMA; q = patexp {q}); RPAREN
-      { let p:pat = P.Tuple (List.fold_right (fun q pp -> (unpackPat q)::pp) (q1::q2::qq) []) in 
-        let e:exp = P.Tuple (List.fold_right (fun q ee -> (unpackExp q)::ee) (q1::q2::qq) []) in 
-        packPatExp p e }
+       {
+         let qq = q1::q2::qq in
+         let pOpt = try Some (pTuple (List.fold_right (fun q pp -> (unpackPat q)::pp) qq [])) with _ -> None in 
+         let eOpt = try Some (eTuple (List.fold_right (fun q ee -> (unpackExp q)::ee) qq [])) with _ -> None in 
+         (pOpt,eOpt)
+       }           
 /// Binop
   | q1 = patexp; PLUS;  q2 = patexp { packExp @@ P.Operate(P.Add,unpackExp q1,unpackExp q2) }
   | q1 = patexp; MINUS; q2 = patexp { packExp @@ P.Operate(P.Sub,unpackExp q1,unpackExp q2) }

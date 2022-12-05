@@ -68,14 +68,16 @@ let eDouble d: exp = P.Double d
 let pDouble d: pat = P.Double d
 let eString s: exp = P.String s
 let pString s: pat = P.String s
-let vString s: P.v = P.String s                   
+let vString s: P.v = P.String s
+let eTuple ee: exp = P.Tuple ee
+let pTuple pp: pat = P.Tuple pp
 let tInt: P.t = P.Int
 let tDouble: P.t = P.Double
 let tBool: P.t = P.Bool
 let tString: P.t = P.String
 let tUnit: P.t = P.Unit
 let tStruct env: P.t = P.Struct env
-let tTuple tt : P.t = P.Tuple tt
+let tTuple tt : P.t = P.Tuple tt                    
                      
 (* print------------------------------------------------------------------ *)
 
