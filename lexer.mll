@@ -101,7 +101,7 @@
          List.iter (fun _ -> addMemo "DEDENT") dedents;
          raise (if dedents = [] then Exit else Issue(dedents))
       | _,_,_ -> raise (ParseError "Indent mismatch")
-                 
+
 }
 
 let space = [' ']
@@ -196,6 +196,7 @@ rule tokens = parse
   | ' '       { try doSpaceTab lexbuf ' ' with Issue toks -> toks | Exit -> tokens lexbuf }
   | '\t'      { try doSpaceTab lexbuf '\t' with Issue toks -> toks | Exit -> tokens lexbuf }
   | comment [^ '\n' '\r']* eol { tokens lexbuf }
+  | "/*"      { comment lexbuf }
   | _
     {
       let message = Printf.sprintf
@@ -208,6 +209,6 @@ rule tokens = parse
     }
 
 and comment = parse
-  | eol     { tokens lexbuf }
+  | "*/"    { tokens lexbuf }
   | eof     { try doEof lexbuf with Issue toks -> toks }
   | _       { comment lexbuf }    
