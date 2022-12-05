@@ -176,9 +176,11 @@ patexp:
 /// Lists
   | NIL { packPatExp pNil eNil }
   | LBRACKET; qq = separated_list(COMMA,patexp); RBRACKET
-      { let p:pat = List.fold_right (fun q p:pat -> P.Cons(unpackPat q,p)) qq pNil in
-        let e:exp = List.fold_right (fun q e:exp -> P.Cons(unpackExp q,e)) qq eNil in
-        packPatExp p e }
+        {
+         let pOpt = try Some (List.fold_right (fun q p:pat -> P.Cons(unpackPat q,p)) qq pNil) with _ -> None in 
+         let eOpt = try Some (List.fold_right (fun q e:exp -> P.Cons(unpackExp q,e)) qq eNil) with _ -> None in 
+         (pOpt,eOpt)
+        }
 /// Tuple / Null / Single
   | NULL           { packExp P.Null }    
   | LPAREN; RPAREN { packExp P.Null }
