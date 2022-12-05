@@ -123,6 +123,7 @@ let float = natnum '.' digit*
                                
 rule tokens = parse
   | "int"     { addMemo "tpINT"; [TpINT] }
+  | "string"  { addMemo "tpSTRING"; [TpSTRING] }
   | "double"  { addMemo "tpDOUBLE"; [TpDOUBLE] }
   | "bool"    { addMemo "tpBOOL"; [TpBOOL] }
   | "unit"    { addMemo "tpUNIT"; [TpUNIT] }
