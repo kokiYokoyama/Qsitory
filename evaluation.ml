@@ -226,13 +226,27 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
         end
     end
 
-  (* |Block(elist) ->
-   *   begin
-   *     match elist with
-   *     |e::elist1 ->
-   *       begin
-   *         match expr_eval e env1 tenv1 with
-   *         | *)
+  |Block(elist) ->
+    begin
+      match elist with
+      |e::[] -> expr_eval e env tenv
+      |e::elist1 ->
+        begin
+          match expr_eval e env tenv with
+          |(v1,env1,tenv1) ->
+            begin
+              try
+                begin
+                  match find env1 "rv" with
+                  |v2 -> (v1,env1,tenv1)
+                end
+              with
+              |NoValueError -> expr_eval (Block(elist1)) env1 tenv1
+            end
+        end
+      |_ -> raise Error
+    end
+              
       
    
    
