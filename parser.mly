@@ -42,7 +42,6 @@
 %token FUN      // "fun"
 %token DEF      // "def"
 %token MATCH    // "match"
-%token WITH     // "with"
 %token RETURN   // "return"
 %token STRUCT   // "struct"
 %token IN       // "in"            
@@ -228,7 +227,7 @@ patexp:
 /// Return
   | RETURN; q = patexp { packExp @@ P.Return (unpackExp q) }
 /// Match-expression
-  | MATCH; q = patexp; WITH; cc = match_clauses_suite
+  | MATCH; q = patexp; COLON; cc = match_clauses_suite
        { packExp @@ P.Match(unpackExp q,cc) }
 /// Declaration / Declaration+Initialization
   | tp = qtype; COLON; x = IDENT0; EQ; q = patexp { packExp @@ P.Declrt1(tp,x,unpackExp q) }
@@ -246,7 +245,6 @@ patexp:
   | FORDICT; ss = separated_list(COMMA,IDENT0); IN; q = patexp; COLON; eeBody = py_suite
        { packExp @@ P.For_dict (ss, unpackExp q, P.Block eeBody) }
 ;
-    
 
 /// block (Python-style, See: https://docs.python.org/ja/3/reference/compound_stmts.html)
 py_stmt_list:
@@ -254,25 +252,19 @@ py_stmt_list:
 ;      
 py_statement:
   | ee = py_stmt_list; nonempty_list(NEWLINE) { ee }
-//  | e = expression { [e] }
 ;
 py_suite:
   | ee = py_stmt_list; NEWLINE { ee }
   | NEWLINE; INDENT; eee = nonempty_list(py_statement); DEDENT { List.flatten eee }
   | NEWLINE; INDENT; NEWLINE; DEDENT { [] }
 ;
-
-match_clause_one:
-  | p = pattern; ARROW; body = py_suite { (p,P.Block body) }
+match_clause_simple:
+  | p = pattern; ARROW; body = expression { (p,P.Block [body]) }    
+;
+match_clause:
+  | p = pattern; ARROW; ee = py_suite; list(NEWLINE) { (p,P.Block ee) }
 ;
 match_clauses_suite:
-  | option(BAR); cc = separated_nonempty_list(BAR,p = pattern; ARROW; e = expression { (p,P.Block[e]) }); NEWLINE { cc }
-  | NEWLINE; INDENT; cc = nonempty_list(option(BAR); c = match_clause_one {c}); DEDENT { cc }
+  | option(BAR); cc = separated_nonempty_list(BAR, c = match_clause_simple { c }) { cc }
+  | NEWLINE; INDENT; cc = nonempty_list(BAR; c = match_clause {c}); DEDENT { cc }
 ;
-
-
-
-/// oneline_expr:
-//  | expr { Prog $1 }
-//  | IF expr COLON NEWLINE   { P.If ($2,$4,$7) }
-//;

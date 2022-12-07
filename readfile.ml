@@ -34,31 +34,33 @@ let parse str =
   try
     doIfDebug "LEXING" print_endline ">> Input";
     doIfDebug "LEXING" (F.printf "@[%S@.") str;
-    
-    doIfDebug "LEXING" print_endline ">> Lexed Result";
+    doIfDebug "LEXING" print_endline ">> Lexed Result";    
+    doIfDebug "LEXING"
+      (fun _ ->
+        let tmpbuf = Lexing.from_string str in
+        Lexer.inIndent := Lexer.nextCharIs [' ';'\t'] tmpbuf;
+        while not (List.mem Parser.EOF (Lexer.tokens tmpbuf)) do () done;
+        print_endline !tokenMemo)
+      ();
     clearMemo ();
     let e = Parser.main cache lexbuf in
-    doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
     e
   with
-  | Parsing.Parse_error ->
-     doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
-     F.printf "@[\n\nParse error: \"%s\"@." (Lexing.lexeme lexbuf);
-     exit 0
   | ParseError mes ->
-     doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
      F.printf "@[\n\nParse error: %s@." mes;
      exit 0
   | _ ->
-     doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
-     F.printf "@[\n\nUnknown Parse error: \"%s\"@." (Lexing.lexeme lexbuf);
+     F.printf "@[\n\nUnknown Parse error: %S at line:%d, pos:%d@."
+       (Lexing.lexeme lexbuf)
+       lexbuf.Lexing.lex_curr_p.Lexing.pos_lnum
+       (lexbuf.Lexing.lex_curr_pos - !Lexer.prev_eol_record);
      exit 0
-
+     
 let rec main_eval (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) =
   match ee with
-  |[] -> Format.printf "finish"
-  |e::[] -> print_evalResult (expr_eval e env tenv)  
-  |e::ee1 ->
+  | [] -> Format.printf "finish"
+  | e::[] -> print_evalResult (expr_eval e env tenv)  
+  | e::ee1 ->
     begin
       match expr_eval e env tenv with
       |(v1,env1,tenv1) ->
@@ -75,7 +77,7 @@ let interpreter filename =
   doIfDebug "PARSING" F.printf "@[- Parsing debug mode: ON@.";  
   F.printf "@[*****************************\n@.";
   try
-    let str = inputstr_file filename in (* filename の中身を読む *)
+    let str = inputstr_file filename in (* filename の中身を読む *)    
     let ee = parse str in (* 読んだ中身を構文解析して結果を e とする *)
     doIfDebug "PARSING" print_endline ">> Parsed Result (internal data)";
     doIfDebug "PARSING" (F.printf "@[%a\n@." (pp_list "" "\n" (fun _ -> print_expr))) ee; (* expr 型 e を表示する *)
@@ -101,5 +103,6 @@ let interpreter filename =
   | NoMatchPatternError -> print_endline "can't found Match Pattern"; exit 0
   | NotMatchExpressionError -> print_endline "this expression not MatchExp"; exit 0
   | UnifFail -> print_endline "fail unif program"; exit 0
- *)
+*)
   | _ -> print_endline "Exception: Eval error"; exit 0
+

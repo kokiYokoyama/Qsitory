@@ -13,6 +13,7 @@
   (* INDENT と DEDENT トークンの発行
 - indent record は各ブロックのインデントレベルの列 ([5;2;0] は 0,2,5 と読み，|__|___| の縦棒の位置がブロック先頭)
 - タブストップは8の倍数
+- 行頭の | (match式のパターン) もタブと同じ扱い
 - 改行される度に indent mode に入る．(new)indent mode 時は常に現在地を覚えておく．
 - (new)indent mode の間は次の文字を先読みする．空白/タブ以外の文字を発見したら normal mode に移行
 - normal mode 移行時に現在地と indent record の数値が不整合なら fail．indent record の末尾から N個手前と整合したら N 個の DEDENT トークンを発行
@@ -31,6 +32,8 @@
   let pos = ref 0
           
   let inclPos () = pos := !pos + 1
+
+  let prev_eol_record = ref 0
                  
   let jumpPos () =
     let rec aux i = if !pos < i then i else aux (i+8) in
@@ -55,20 +58,27 @@
 
   let rec popRecord toks n record =
     match record with
-    | m::record1 when n < m -> popRecord (DEDENT::toks) n record1
+    | m::record1 when n < m -> popRecord (NEWLINE::DEDENT::toks) n record1
     | m::_ when n = m -> (toks,record)
     | _ -> failwith ""
-                           
+
+  let itsNewLine lexbuf =
+    Lexing.new_line lexbuf;
+    prev_eol_record := lexbuf.Lexing.lex_curr_pos
+         
   let doNewLine lexbuf =
+    itsNewLine lexbuf;
     pos := 0;
-    inIndent := nextCharIs [' ';'\t'] lexbuf;    
-    match List.hd !record <> 0 && not !inIndent with
-    | false -> addMemo "NEWLINE"; raise (Issue [NEWLINE])
-    | true ->
+    inIndent := nextCharIs [' ';'\t'] lexbuf;
+    let nextIsCommentLine = nextCharIs ['/'] lexbuf in
+    match nextIsCommentLine, List.hd !record <> 0 && not !inIndent with
+    | true,_ -> raise Exit
+    | _,false -> addMemo "NEWLINE"; raise (Issue [NEWLINE])
+    | _,true ->
        let (dedents,_) = popRecord [] 0 !record in
        record := [0];
        addMemo "NEWLINE";
-       List.iter (fun _ -> addMemo "DEDENT") dedents;
+       List.iter (fun _ -> addMemo "NEWLINE"; addMemo "DEDENT") dedents;
        raise (Issue (NEWLINE::dedents))
 
   let doEof lexbuf =
@@ -107,7 +117,6 @@
 let space = [' ']
 let tab = [' ']
 let newline = ['\n']
-let eol = ['\n' '\r']
 let digit = ['0'-'9']
 let posdigit = ['1'-'9']
 let alpha = ['A'-'Z' 'a'-'z']
@@ -141,7 +150,6 @@ rule tokens = parse
   | "fun"     { addMemo "FUN"; [FUN] }
   | "def"     { addMemo "DEF"; [DEF] }  
   | "match"   { addMemo "MATCH"; [MATCH] }
-  | "with"    { addMemo "WITH"; [WITH] }
   | "in"      { addMemo "IN"; [IN] }  
   | "nil"     { addMemo "NIL"; [NIL] }
   | "null"    { addMemo "NULL"; [NULL] }
@@ -191,11 +199,11 @@ rule tokens = parse
   | natnum    { let n = int_of_string (Lexing.lexeme lexbuf) in
                 addMemo (F.sprintf "INT(%d)" n);
                 [INT n] }
-  | eof       { try doEof lexbuf with Issue toks -> toks }
-  | '\n'      { try doNewLine lexbuf with Issue toks -> toks }
+  | eof       { try doEof lexbuf with Issue toks -> toks | Exit -> tokens lexbuf }
+  | '\n'      { try doNewLine lexbuf with Issue toks -> toks | Exit -> tokens lexbuf }
   | ' '       { try doSpaceTab lexbuf ' ' with Issue toks -> toks | Exit -> tokens lexbuf }
   | '\t'      { try doSpaceTab lexbuf '\t' with Issue toks -> toks | Exit -> tokens lexbuf }
-  | comment [^ '\n' '\r']* eol { tokens lexbuf }
+  | comment [^ '\n']* '\n' { try doNewLine lexbuf with Issue toks -> toks | Exit -> tokens lexbuf }
   | "/*"      { comment lexbuf }
   | _
     {
@@ -211,4 +219,5 @@ rule tokens = parse
 and comment = parse
   | "*/"    { tokens lexbuf }
   | eof     { try doEof lexbuf with Issue toks -> toks }
+  | '\n'    { itsNewLine lexbuf; comment lexbuf }
   | _       { comment lexbuf }    
