@@ -146,8 +146,8 @@ qtype:
   | STRUCT; tName = IDENT1; LPAREN; RPAREN; COMMA; ee = py_suite
       { let mkEnv1 e =
          match e with
-         | P.Declrt1(tp,x,_) -> (x,tp,vString "DUMMY")
-         | P.Declrt2(tp,x)   -> (x,tp,vString "DUMMY")
+         | P.Declrt1(tp,x,_) -> (x,tp,None)
+         | P.Declrt2(tp,x)   -> (x,tp,None)
          | _ -> raise (ParseError "Unexpected struct definition")
         in
         tStruct (List.map mkEnv1 ee)
