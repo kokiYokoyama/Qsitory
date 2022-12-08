@@ -37,9 +37,9 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
   |Declrt1(t,s,e) ->
     begin
       match expr_eval e env tenv with
-      |(v1,env1,tenv1) -> (Null,((s,t,v1)::env1),tenv1)
+      |(v1,env1,tenv1) -> (Null,((s,t,Some (v1))::env1),tenv1)
     end
-  |Declrt2(t,s) -> (Null,((s,t,Null)::env),tenv)
+  |Declrt2(t,s) -> (Null,((s,t,None)::env),tenv)
   |Formu(p,e) ->
     begin
       match expr_eval e env tenv with
@@ -157,7 +157,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
           |s::paraList1,(Cons(v1,v2))::vlist1 ->
             begin
               (* 2要素目 *)
-              match expr_secondFor_eval paraList1 vlist1 e ((s,(Any:Program.t),v1)::(find_remove env1 s [])) tenv1 with
+              match expr_secondFor_eval paraList1 vlist1 e ((s,(Any:Program.t),Some (v1))::(find_remove env1 s [])) tenv1 with
               |(v2,env2,tenv2) ->
                 begin
                   (* 2周目以降 *)
@@ -175,7 +175,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
                     end
                 end
             end
-          |s::paraList1,(Nil)::vlist1 -> expr_secondFor_eval paraList1 vlist1 e ((s,Any,Null)::(find_remove env s [])) tenv
+          |s::paraList1,(Nil)::vlist1 -> expr_secondFor_eval paraList1 vlist1 e ((s,Any,None)::(find_remove env s [])) tenv
           |_ -> raise Error
         end
     end
@@ -254,8 +254,9 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
 
 and find (env:Program.env) (s:string) :Program.v =
   match env with
-  |(s1,t,v)::env1 -> if String.equal s s1 then v else find env1 s
+  |(s1,t,Some (v))::env1 -> if String.equal s s1 then v else find env1 s
   |[] -> raise NoValueError
+  |_ -> raise Error
 
 and find_remove (env:Program.env) (s:string) (fenv:Program.env) :Program.env =
   match env with
@@ -289,7 +290,7 @@ and patternMatch (p:Program.p) (v:Program.v) (env:Program.env) :Program.patterno
   |Double d1,Double d2 -> if d1==d2 then Some env else None
   |Bool b1,Bool b2 -> if b1==b2 then Some env else None
   |String s1,String s2 -> if String.equal s1 s2 then Some env else None
-  |Var s,v -> Some ((s,Any,v)::(find_remove env s []))
+  |Var s,v -> Some ((s,Any,Some v)::(find_remove env s []))
   |Nil,Nil -> Some env
   |Wild,v -> Some env
   |Cons(p1,p2),Cons(v1,v2) ->
@@ -339,11 +340,11 @@ and updateFids (ins_n:string) (fids:string list) (v:Program.v) (env:Program.env)
   |Struct(st_n,field) ->
     begin
       match fids with
-      |fi_n::[] -> (ins_n,(T st_n),Struct(st_n,((fi_n,Any,v)::(find_remove field fi_n [] ))))::(find_remove env ins_n [])
+      |fi_n::[] -> (ins_n,(T st_n),Some (Struct(st_n,((fi_n,Any,Some v)::(find_remove field fi_n [] )))))::(find_remove env ins_n [])
       |fi_n::fids1 ->
         begin
           match updateFids fi_n fids1 v field with
-          |field1 -> ((ins_n,(T st_n),Struct(st_n,field1))::(find_remove env ins_n []))
+          |field1 -> ((ins_n,(T st_n),Some (Struct(st_n,field1)))::(find_remove env ins_n []))
         end
       |_ -> raise Error
     end
@@ -354,8 +355,8 @@ and aOperate (e:Program.e) (v1:Program.v) (v2:Program.v) (aop:Program.aop) (env:
   |Var s ->
     begin
       match v1 with
-      |Null -> ((s,Any,v2)::(find_remove env s []))
-      |_ -> ((s,Any,(operate v1 v2 (changeaop_to_op aop)))::(find_remove env s []))
+      |Null -> ((s,Any,Some v2)::(find_remove env s []))
+      |_ -> ((s,Any,Some (operate v1 v2 (changeaop_to_op aop)))::(find_remove env s []))
     end
   |_ -> raise Error
 
@@ -491,7 +492,7 @@ and bindCons (v1:Program.v) (v2:Program.v) :Program.v =
 
 and expr_subFormu_eval (e:Program.e) (v:Program.v) (p:Program.p) (env:Program.env) :Program.env =
   match e with
-  |Var s -> ((s,Any,(removeMatch v p env))::(find_remove env s []))
+  |Var s -> ((s,Any,Some (removeMatch v p env))::(find_remove env s []))
   |_ -> raise Error
 
 and removeMatch (v:Program.v) (p:Program.p) (env:Program.env) :Program.v =
@@ -594,9 +595,9 @@ and expr_secondFor_eval (paraList:string list) (vlist:Program.v list) (e:Program
   match paraList,vlist with
   (* 全要素完了 *)
   |[],[] -> expr_eval e env tenv
-  |s::paraList1,(Cons(v1,v2))::vlist1 -> expr_secondFor_eval paraList1 vlist1 e ((s,Any,v1)::(find_remove env s [])) tenv 
+  |s::paraList1,(Cons(v1,v2))::vlist1 -> expr_secondFor_eval paraList1 vlist1 e ((s,Any,Some v1)::(find_remove env s [])) tenv 
 
-  |s::paraList1,(Nil)::vlist1 -> expr_secondFor_eval paraList1 vlist1 e ((s,Any,Null)::(find_remove env s [])) tenv
+  |s::paraList1,(Nil)::vlist1 -> expr_secondFor_eval paraList1 vlist1 e ((s,Any,None)::(find_remove env s [])) tenv
   |_ -> raise Error
 
 and expr_roopFor_eval (paraList:string list) (vlist:Program.v list) (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.evalResult =
@@ -606,7 +607,7 @@ and expr_roopFor_eval (paraList:string list) (vlist:Program.v list) (e:Program.e
   |s::paraList1,(Cons(v1,v2))::vlist1 ->
     begin
       (* 2要素目 *)
-      match expr_secondFor_eval paraList1 vlist1 e ((s,(Any:Program.t),v1)::(find_remove env s [])) tenv with
+      match expr_secondFor_eval paraList1 vlist1 e ((s,(Any:Program.t),Some v1)::(find_remove env s [])) tenv with
       |(v2,env2,tenv2) ->
         begin
           (* 2周目以降 *)
@@ -624,7 +625,7 @@ and expr_roopFor_eval (paraList:string list) (vlist:Program.v list) (e:Program.e
             end
         end
     end
-  |s::paraList1,(Nil)::vlist1 -> expr_secondFor_eval paraList1 vlist1 e ((s,Any,Null)::(find_remove env s [])) tenv
+  |s::paraList1,(Nil)::vlist1 -> expr_secondFor_eval paraList1 vlist1 e ((s,Any,None)::(find_remove env s [])) tenv
   |_ -> raise Error
 
 and expr_roopFor_dict_eval (paraList:string list) (v:Program.v) (e:Program.e) (env:Program.env) (tenv:Program.tenv) =
@@ -648,7 +649,7 @@ and expr_roopFor_dict_eval (paraList:string list) (v:Program.v) (e:Program.e) (e
 and get_dict_item (paraList:string list) (tuple:Program.v) (env:Program.env) :Program.env =
   match paraList,tuple with
   |[],Tuple ([]) ->env
-  |s::paraList1,Tuple (v::vlist1) -> get_dict_item paraList1 (Tuple (vlist1)) ((s,Any,v)::(find_remove env s [])) 
+  |s::paraList1,Tuple (v::vlist1) -> get_dict_item paraList1 (Tuple (vlist1)) ((s,Any,Some v)::(find_remove env s [])) 
   |_ -> raise Error
 
 ;;

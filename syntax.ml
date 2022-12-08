@@ -39,7 +39,7 @@ module Program = struct
         | UseIns1 of e * string | UseIns2 of e * e
         | Block of e list
   (* environment *)
-  and env = (string * t * v) list
+  and env = (string * t * v option) list
   (* type environment *)
   and tenv = ( t * t ) list
   (* type equals *)
@@ -156,8 +156,8 @@ and value_tuple_print list =
 
 and value_struct_print list =
   match list with
-  |(s,t,v)::[] -> Format.printf "(%s,%a,%a)" s (fun _ -> print_type) t (fun _ -> print_value) v
-  |(s,t,v)::list1 -> Format.printf "(%s,%a,%a),%a" s (fun _ -> print_type) t (fun _ -> print_value) v (fun _ -> value_struct_print) list1
+  |(s,t,Some v)::[] -> Format.printf "(%s,%a,%a)" s (fun _ -> print_type) t (fun _ -> print_value) v
+  |(s,t,Some v)::list1 -> Format.printf "(%s,%a,%a),%a" s (fun _ -> print_type) t (fun _ -> print_value) v (fun _ -> value_struct_print) list1
   | _ -> raise Error
 
 (* pattern *)
@@ -240,8 +240,9 @@ and expr_arglist_print list =
 (* environment *)
 and print_env (env:Program.env) =
   match env with
-  |(s,t,v)::list -> Format.printf "(%s,%a,%a)::%a" s (fun _ -> print_type) t (fun _ -> print_value) v (fun _ -> print_env) list
+  |(s,t,Some v)::list -> Format.printf "(%s,%a,%a)::%a" s (fun _ -> print_type) t (fun _ -> print_value) v (fun _ -> print_env) list
   | [] -> Format.printf "[]"
+  | _ -> raise Error
 
 (* type environment *)
 and print_tenv (tenv:Program.tenv) =

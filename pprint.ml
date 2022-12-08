@@ -57,9 +57,9 @@ and pp_value fmt (v:Program.v) =
   | Cons(v1,v2) -> F.fprintf fmt "%a::%a" pp_value v1 pp_value v2
   | Tuple list -> F.fprintf fmt "(%a)" (pp_list "" "," pp_value) list
   | FunClos(env,s,e) -> F.fprintf fmt "FunClos(%a,%s,%a)" pp_env env s pp_expr e
-  | Struct (s,list) -> F.fprintf fmt "Struct(%s,[%a])" s (pp_list0 pp_value_struct1) list
+  | Struct (s,list) -> F.fprintf fmt "Struct(%s,[%a])" s pp_env list
 
-and pp_value_struct1 fmt (s,t,v) = pp_tuple3 pp_string pp_type pp_value fmt (s,t,v)
+(* and pp_value_struct1 fmt (s,t,v) = pp_tuple3 pp_string pp_type pp_value fmt (s,t,v) *)
 
 (* pattern *)
 and pp_pat fmt (p:Program.p) =
@@ -115,7 +115,7 @@ and pp_expr fmt (e:Program.e) =
 and pp_expr_patlist1 fmt (p,e) = pp_tuple2 pp_pat pp_expr fmt (p,e)
 
 (* environment *)
-and pp_env fmt (env:Program.env) = pp_list0 (pp_tuple3 pp_string pp_type pp_value) fmt env
+and pp_env fmt (env:Program.env) = pp_list0 (pp_tuple3 pp_string pp_type (pp_opt "Null" pp_value)) fmt env
          
 (* type environment *)
 and pp_tenv fmt (tenv:Program.tenv) = pp_list0 (pp_tuple2 pp_type pp_type) fmt tenv
