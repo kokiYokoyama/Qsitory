@@ -10,10 +10,10 @@
 
 *Qsitory has a few features like other languages do not have.*
 
-### multidimensional 'enhanced roop statement'
+### multidimensional 'enhanced loop statement'
 
-*It is like Java's 'enhanced roop statement' and Python's 'for statement'.
-'Enhanced roop statement' is taking an element from a list and putting it in a variable and repeating. but also Qsitory enabled multiple lists.so you can eliminate the need to write many similar 'for statement'!*
+*It is like Java's 'enhanced loop statement' and Python's 'for statement'.
+'Enhanced loop statement' is taking an element from a list and putting it in a variable and repeating. but also Qsitory enabled multiple lists.so you can eliminate the need to write many similar 'for statement'!*
 
 ### dynamic structure
 
