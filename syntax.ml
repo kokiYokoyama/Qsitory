@@ -34,7 +34,7 @@ module Program = struct
         | Match of e * ( (p * e) list )
         | For of ( string list) * ( e list ) * e
         | For_dict of ( string list ) * e * e
-        | While of e * e | Dfun of (string list) * e | Fun of e * e
+        | While of e * e | Dfun of string * e | Fun of e * e
         | Return of e | MakeIns of string
         | UseIns1 of e * string | UseIns2 of e * e
         | Block of e list
