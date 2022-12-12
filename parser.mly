@@ -217,13 +217,25 @@ patexp:
   | sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }
 /// Functions:
   | FUN; ss = separated_list(COMMA,IDENT0); ARROW; ee = py_suite
-       { packExp @@ P.Dfun (ss,P.Block ee) }
+       {
+         let ss = if ss = [] then [""] else ss in
+         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(s,P.Block ee)]) ss ee) in
+         packExp @@ eFun
+       }
   | FUN; LPAREN; ss = separated_list(COMMA,IDENT0); RPAREN; ARROW; ee = py_suite
-       { packExp @@ P.Dfun (ss,P.Block ee) }
+       {
+         let ss = if ss = [] then [""] else ss in
+         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(s,P.Block ee)]) ss ee) in
+         packExp @@ eFun
+       }
   | qFun = patexp; qArg = patexp
        { packExp @@ P.Fun(unpackExp qFun,unpackExp qArg) }
   | DEF; fname = IDENT0; LPAREN; ss = separated_list(COMMA,IDENT0); RPAREN; COLON; ee = py_suite
-       { packExp @@ P.Formu(pVar fname, P.Dfun (ss,P.Block ee)) }
+       {
+         let ss = if ss = [] then [""] else ss in
+         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(s,P.Block ee)]) ss ee) in
+         packExp @@ P.Formu(pVar fname, eFun)
+       }
 /// Return
   | RETURN; q = patexp { packExp @@ P.Return (unpackExp q) }
 /// Match-expression
