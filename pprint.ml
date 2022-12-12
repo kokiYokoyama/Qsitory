@@ -104,7 +104,7 @@ and pp_expr fmt (e:Program.e) =
   | For(list1,ee,e) -> F.fprintf fmt "For([%a],[%a],%a)" (pp_list0 pp_string) list1 (pp_list0 pp_expr) ee pp_expr e                   
   | For_dict(list1,e1,e2) -> F.fprintf fmt "For_dict([%a],%a,%a)" (pp_list0 pp_string) list1 pp_expr e1 pp_expr e2
   | While(e1,e2) -> F.fprintf fmt "While(%a,%a)" pp_expr e1 pp_expr e2
-  | Dfun(ss,e) -> F.fprintf fmt "Dfun(%a,%a)" (pp_list "" "," pp_string) ss pp_expr e
+  | Dfun(s,e) -> F.fprintf fmt "Dfun(%s,%a)" s pp_expr e
   | Fun(e1,e2) -> F.fprintf fmt "Fun(%a,%a)" pp_expr e1 pp_expr e2
   | Return(e) -> F.fprintf fmt "Return(%a)" pp_expr e
   | MakeIns(s) -> F.fprintf fmt "MakeIns(%s)" s
