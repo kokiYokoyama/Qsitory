@@ -225,6 +225,34 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
           |_ -> raise Error
         end
     end
+  |Dfun(s,e) -> (FunClos(env,s,e),env,tenv)
+  |Fun(e1,e2) ->
+    begin
+      match expr_eval e1 env tenv with
+      |(v1,env1,tenv1) ->
+        begin
+          match v1 with
+          |FunClos(env0,s,e0) ->
+            begin
+              match expr_eval e2 env1 tenv1 with
+              |(v2,env2,tenv2) ->
+                begin
+                  match expr_eval e0 ((s,Any,(Some v2))::(env0@(find_fun env []))) tenv2 with
+                  |(v3,env3,tenv3) ->
+                    begin
+                      try
+                        begin
+                          match find env3 "rv" with
+                          |v4 -> (v4,env,tenv)
+                        end
+                      with
+                      |NoValueError -> (v3,env,tenv)
+                    end
+                end
+            end                    
+          |_ -> raise Error
+        end
+    end
 
   |Block(elist) ->
     begin
@@ -258,11 +286,21 @@ and find (env:Program.env) (s:string) :Program.v =
   |[] -> raise NoValueError
   |_ -> raise Error
 
+and find_fun (env:Program.env) (fenv:Program.env) :Program.env =
+  match env with
+  |(s,t,v)::env1 ->
+    begin
+      match t with
+      |Fun(t1,t2) -> find_fun env1 ((s,t,v)::fenv)
+      |_ -> find_fun env1 fenv
+    end
+  |[] -> fenv
+
 and find_remove (env:Program.env) (s:string) (fenv:Program.env) :Program.env =
   match env with
   |(s1,t,v)::env1 -> if String.equal s s1 then find_remove env1 s fenv else find_remove env1 s ((s1,t,v)::fenv)
   |[] -> fenv
-
+              
 and expr_tuple_eval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv) :Program.v list =
   begin
     match elist with
@@ -290,7 +328,12 @@ and patternMatch (p:Program.p) (v:Program.v) (env:Program.env) :Program.patterno
   |Double d1,Double d2 -> if d1==d2 then Some env else None
   |Bool b1,Bool b2 -> if b1==b2 then Some env else None
   |String s1,String s2 -> if String.equal s1 s2 then Some env else None
-  |Var s,v -> Some ((s,Any,Some v)::(find_remove env s []))
+  |Var s,v ->
+    begin
+      match v with
+      |FunClos(env0,s0,e0) -> Some ((s,Fun(Any,Any),Some v)::(find_remove env s []))
+      |_ -> Some ((s,Any,Some v)::(find_remove env s []))
+    end
   |Nil,Nil -> Some env
   |Wild,v -> Some env
   |Cons(p1,p2),Cons(v1,v2) ->
