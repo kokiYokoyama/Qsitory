@@ -48,13 +48,12 @@ def function1 (x,y) :
 z=(function1 2) 3
 */
 
-/*
-引数が複数の関数の使用
+//引数が複数の関数の使用
 def function1 (x,y) :
-   x+y
+   z=x+y
+   return (x,y,z)
 
-z=(function1 2) 3
-*/
+(x,y,z)=(function1 2) 3
 
 /*
 引数が一つの関数の使用

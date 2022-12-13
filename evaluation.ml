@@ -253,7 +253,11 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
           |_ -> raise Error
         end
     end
-
+  |Return e ->
+    begin
+      match expr_eval e env tenv with
+      |(v1,env1,tenv1) -> (Null,(("rv",Any,Some v1)::env1),tenv1)
+    end
   |Block(elist) ->
     begin
       match elist with
