@@ -165,6 +165,8 @@ rule tokens = parse
   | '-'       { addMemo "MINUS"; [MINUS] }
   | ".-"      { addMemo "DOTMINUS"; [DOTMINUS] }  
   | '*'       { addMemo "AST"; [AST] }
+  | '/'       { addMemo "DIV"; [DIV] }
+  | "mod"     { addMemo "MOD"; [MOD] }  
   | '('       { addMemo "LPAREN"; [LPAREN] }
   | ')'       { addMemo "RPAREN"; [RPAREN] }
   | "["       { addMemo "LBRACKET"; [LBRACKET] }

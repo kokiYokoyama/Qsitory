@@ -49,6 +49,8 @@
 %token MINUS    // '-'
 %token DOTMINUS // ".-"
 %token AST      // '*'
+%token DIV      // '/'
+%token MOD      // "mod"
 %token LPAREN   // '('
 %token RPAREN   // ')'
 %token LBRACKET // '['
@@ -195,6 +197,8 @@ patexp:
   | q1 = patexp; PLUS;  q2 = patexp { packExp @@ P.Operate(P.Add,unpackExp q1,unpackExp q2) }
   | q1 = patexp; MINUS; q2 = patexp { packExp @@ P.Operate(P.Sub,unpackExp q1,unpackExp q2) }
   | q1 = patexp; AST;   q2 = patexp { packExp @@ P.Operate(P.Mul,unpackExp q1,unpackExp q2) }
+  | q1 = patexp; DIV;   q2 = patexp { packExp @@ P.Operate(P.Div,unpackExp q1,unpackExp q2) }
+  | q1 = patexp; MOD;   q2 = patexp { packExp @@ P.Operate(P.Mod,unpackExp q1,unpackExp q2) }
 /// Assignments
   | q1 = patexp; PLUSEQ;  q2 = patexp { packExp @@ P.AOperate(P.Add,unpackExp q1,unpackExp q2) }
   | q1 = patexp; MINUSEQ; q2 = patexp { packExp @@ P.AOperate(P.Sub,unpackExp q1,unpackExp q2) }
