@@ -258,6 +258,25 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
       match expr_eval e env tenv with
       |(v1,env1,tenv1) -> (Null,(("rv",Any,Some v1)::env1),tenv1)
     end
+  |Dstruct(s,e) -> (Null,env,tenv)
+  |MakeIns(s) -> (Struct(s,(makeStructEnv s tenv [])),env,tenv)
+  |UseIns1(e,s) ->
+    begin
+      match expr_eval e env tenv with
+      |(Struct(s,structEnv),env1,tenv1) -> ((find structEnv s),env1,tenv1)
+      |_ -> raise Error
+    end
+  |UseIns2(e1,e2) ->
+    begin
+      match expr_eval e1 env tenv with
+      |((String s1),env1,tenv1) ->
+        begin
+          match expr_eval e2 env1 tenv1 with
+          |((String s2),env2,tenv2) -> expr_eval (UseIns1(Var(s1),s2)) env2 tenv2
+          |_ -> raise Error
+        end
+      |_ -> raise Error
+    end
   |Block(elist) ->
     begin
       match elist with
@@ -697,6 +716,51 @@ and get_dict_item (paraList:string list) (tuple:Program.v) (env:Program.env) :Pr
   match paraList,tuple with
   |[],Tuple ([]) ->env
   |s::paraList1,Tuple (v::vlist1) -> get_dict_item paraList1 (Tuple (vlist1)) ((s,Any,Some v)::(find_remove env s [])) 
+  |_ -> raise Error
+
+and makeStructEnv (s:string) (tenv:Program.tenv) (flist:Program.env) :Program.env =
+  match List.assoc (T(s):Program.t) tenv  with
+  |Struct(list) -> findMyType tenv list flist
+  |_ -> raise Error
+
+and findMyType (tenv:Program.tenv) (list:Program.env) (flist:Program.env) =
+  match list with
+  |(s,t,v)::list1 ->
+    begin
+      match t with
+      |T(s1) ->
+        begin
+          match makeStructEnv s tenv flist with
+          |flist2 -> findMyType tenv list1 ((s,t,Some (Struct(s1,flist2)))::flist)
+        end
+      |_ -> findMyType tenv list1 ((s,t,v)::flist)
+    end                                            
+  |[] -> flist
+
+;;
+
+(* Expr_Tval--------------------------------------------------------- *)
+
+(* 一つの構文における
+ * T0 -> t tn
+ * T1 -> t (tn+1)         
+ * T2 -> t (tn+2) *)
+
+let t (tn:int) :Program.t = T ("T" ^ string_of_int(tn))
+
+let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
+  match e with
+  |Int i -> (env,tenv,(((t n),Int)::tequals),n)
+  |Double d -> (env,tenv,(((t n),Double)::tequals),n)
+  |Bool b -> (env,tenv,(((t n),Bool)::tequals),n)
+  |String s -> (env,tenv,(((t n),String)::tequals),n)
+  |Var s -> (env,tenv,(((t n),(find_type env s))::tequals),n)
+
+(* tval's function!------------------------------------------------------- *)
+and find_type (env:Program.env) (s:string) :Program.t =
+  match env with
+  |(s1,t,Some (v))::env1 -> if String.equal s s1 then t else find_type env1 s
+  |[] -> raise NoValueError
   |_ -> raise Error
 
 ;;

@@ -1,3 +1,13 @@
+//return文により強制終了がされているか
+/*
+def function1 (x) :
+   if x>1 :
+     return x
+   return 0
+
+function1 2
+*/
+
 /*
 //相互再帰関数の使用
 def f (x) :
@@ -21,7 +31,8 @@ def function1 (x,y) :
 def function0 (x) :
    x
 
-z=(function1 2) 3
+z=function1 2
+z 3
 */
 
 /*
@@ -48,12 +59,14 @@ def function1 (x,y) :
 z=(function1 2) 3
 */
 
+/*
 //引数が複数の関数の使用
 def function1 (x,y) :
    z=x+y
    return (x,y,z)
 
 (x,y,z)=(function1 2) 3
+*/
 
 /*
 引数が一つの関数の使用
@@ -104,12 +117,13 @@ match l :
  |[x,y,z] -> 2
 */
 
-/*
+
 if not 1<2 :
    1
 else :
    0
-   
+
+/*
 if 1<2 :
    1
 else :

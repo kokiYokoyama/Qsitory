@@ -35,7 +35,7 @@ module Program = struct
         | For of ( string list) * ( e list ) * e
         | For_dict of ( string list ) * e * e
         | While of e * e | Dfun of string * e | Fun of e * e
-        | Return of e | MakeIns of string
+        | Return of e | Dstruct of string * e | MakeIns of string
         | UseIns1 of e * string | UseIns2 of e * e
         | Block of e list
   (* environment *)
@@ -47,6 +47,7 @@ module Program = struct
 
   (* other *)
   type evalResult =(v * env * tenv )
+  type tvalResult =(env * tenv * tequals * int )
   type patternop = Some of env | None
 
 end;;
@@ -208,6 +209,7 @@ and print_expr (e:Program.e) =
   |Dfun(s,e) -> Format.printf "Dfun(%s,%a)" s (fun _ -> print_expr) e
   |Fun(e1,e2) -> Format.printf "Fun(%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
   |Return(e) -> Format.printf "Return(%a)" (fun _ -> print_expr) e
+  |Dstruct(s,e) -> Format.printf "Dstruct(%s,%a)"  s (fun _ -> print_expr) e
   |MakeIns(s) -> Format.printf "MakeIns(%s)" s
   |UseIns1(e,s) -> Format.printf "UseIns1(%a,%s)" (fun _ -> print_expr) e s
   |UseIns2(e1,e2) -> Format.printf "UseIns2(%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_expr) e2

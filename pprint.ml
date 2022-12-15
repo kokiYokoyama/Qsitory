@@ -107,6 +107,7 @@ and pp_expr fmt (e:Program.e) =
   | Dfun(s,e) -> F.fprintf fmt "Dfun(%s,%a)" s pp_expr e
   | Fun(e1,e2) -> F.fprintf fmt "Fun(%a,%a)" pp_expr e1 pp_expr e2
   | Return(e) -> F.fprintf fmt "Return(%a)" pp_expr e
+  | Dstruct(s,e) -> F.fprintf fmt "Dstruct(%s,%a)" s pp_expr e
   | MakeIns(s) -> F.fprintf fmt "MakeIns(%s)" s
   | UseIns1(e,s) -> F.fprintf fmt "UseIns1(%a,%s)" pp_expr e s
   | UseIns2(e1,e2) -> F.fprintf fmt "UseIns2(%a,%a)" pp_expr e1 pp_expr e2
