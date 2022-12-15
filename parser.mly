@@ -110,7 +110,7 @@
 %type <patexp> patexp
 %%
 // 
-main:
+main:  
   | eee = list(expression_newline); eof { List.flatten eee }
 ;
 expression:

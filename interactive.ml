@@ -104,6 +104,14 @@ let interpreter () =
     | Some ee ->
        doIfDebug "LEXING" (F.printf "@[Token: %s@.") !tokenMemo;
        doIfDebug "PARSING" (F.printf "@[Expr: %a@." (pp_list "" "\n" P.pp_expr)) ee;
+       let valueOpt = ref None in
+       List.iter (fun e ->
+           let (v,ev,tev) = Evaluation.expr_eval e sc.env sc.tenv in
+           sc.env <- ev;
+           sc.tenv <- tev;
+           valueOpt := Some v
+         ) ee;
+       F.printf "@[Value: %a@." (pp_opt "NoValue" Pprint.pp_value) !valueOpt;
        F.printf "@[Env : [%a]@." Pprint.pp_env sc.env;
        F.printf "@[TEnv: [%a]@." Pprint.pp_tenv sc.tenv;       
        (* eval *)

@@ -81,7 +81,7 @@ let interpreter filename =
     let ee = parse str in (* 読んだ中身を構文解析して結果を e とする *)
     doIfDebug "PARSING" print_endline ">> Parsed Result (internal data)";
     doIfDebug "PARSING" (F.printf "@[%a\n@." (pp_list "" "\n" (fun _ -> print_expr))) ee; (* expr 型 e を表示する *)
-    main_eval ee [] []          
+    main_eval ee [] []
         
     (*
     match (Syntax.tval e [] [] 0) with
