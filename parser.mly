@@ -93,7 +93,6 @@
             
 // 結合力(優先度が低い順)
 %left DOTDOT            
-%left IF
 %left AND OR
 %nonassoc NOT         
 %left EQ LT LE GT GE PLUSEQ MINUSEQ MULEQ DIVEQ EQEQ NEQ
@@ -232,7 +231,7 @@ patexp:
          let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(s,P.Block ee)]) ss ee) in
          packExp @@ eFun
        }
-  | qFun = patexp; qArg = patexp
+  | qFun = patexp; LPAREN; qArg = patexp; RPAREN
        { packExp @@ P.Fun(unpackExp qFun,unpackExp qArg) }
   | DEF; fname = IDENT0; LPAREN; ss = separated_list(COMMA,IDENT0); RPAREN; COLON; ee = py_suite
        {
@@ -264,13 +263,13 @@ patexp:
 
 /// block (Python-style, See: https://docs.python.org/ja/3/reference/compound_stmts.html)
 py_stmt_list:
-  | e = expression; ee = list(SEMICOLON; e = expression { e }); option(SEMICOLON) { e::ee }
+  | e = expression; ee = list(SEMICOLON; e = expression { e }) { e::ee }
 ;      
 py_statement:
   | ee = py_stmt_list; nonempty_list(NEWLINE) { ee }
 ;
 py_suite:
-  | ee = py_stmt_list; NEWLINE { ee }
+  | ee = py_stmt_list; option(NEWLINE) { ee }
   | NEWLINE; INDENT; eee = nonempty_list(py_statement); DEDENT { List.flatten eee }
   | NEWLINE; INDENT; NEWLINE; DEDENT { [] }
 ;

@@ -153,7 +153,8 @@ let interpreter () =
            | GotoNextB -> ()
          done
     with
-    | GotoNextA ->       
-       resetScanner ()
+    | GotoNextA -> resetScanner ()
+    | Evaluation.NoValueError -> Format.printf "Error: No Value\n"; resetScanner ()
+    | Syntax.Error -> Format.printf "Error: Unexpected Syntax\n"; resetScanner ()
   done
 ;;
