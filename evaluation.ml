@@ -824,6 +824,45 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
             end
         end
     end
+  |Operate(op,e1,e2) ->
+    begin
+      match expr_tval e1 env tenv tequals (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match expr_tval e2 env1 tenv1 tequals1 (n1+1) with
+          |(env2,tenv2,tequals2,n2) -> (env2,tenv2,(((t n),(operateType (n+1) (n1+1) op tequals2))::tequals2),n2)
+        end
+    end
+  |Sub(e,p) ->
+    begin
+      match expr_tval e env tenv tequals (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match pat_tval p env1 tenv1 tequals1 (n1+1) with
+          |(env2,tenv2,tequals2,n2) -> (env2,tenv2,(((t n),(operateType (n+1) (n1+1) (Sub2:Program.op) tequals2))::tequals2),n2)
+        end
+    end
+  |Not e -> expr_tval e env tenv (((t (n+1)),Bool)::((t n),Bool)::tequals) (n+1)
+  |If(e1,e2,e3) ->
+    begin
+      match expr_tval e1 env tenv (((t (n+1)),Bool)::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match expr_tval e2 env1 tenv1 (((t (n1+1)),(t n))::tequals1) (n1+1) with
+          |(env2,tenv2,tequals2,n2) -> expr_tval e3 env2 tenv2 (((t (n2+1)),(t n))::tequals2) (n2+1)
+        end
+    end
+  |Block(elist) ->
+    begin
+      match elist with
+      |e::[] -> expr_tval e env tenv (((t n),(t (n+1)))::tequals) (n+1)
+      |e::elist1 ->
+        begin
+          match expr_tval e env tenv (((t n),(t (n+1)))::tequals) (n+1) with
+          |(env1,tenv1,tequals1,n1) -> expr_tval (Block(elist1)) env1 tenv1 tequals1 n1
+        end
+      |_ -> raise Error
+    end
 
 (* Pat_Tval--------------------------------------------------------------- *)
 
@@ -848,7 +887,7 @@ and pat_tval (p:Program.p) (env:Program.env) (tenv:Program.tenv) (tequals:Progra
     end
   
 (* tval's function!------------------------------------------------------- *)
-
+      
 and remove_list a list flist =
   match list with
   |a1::list1 -> if a1==a then remove_list a list flist else remove_list a list1 (a1::flist)
@@ -1152,6 +1191,16 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |Tuple tlist,t -> Tuple (remove_list t tlist [])
       |_ -> raise Error
     end
+
+(* and secondBlock_tval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
+ *   match elist with
+ *   |e::[] -> expr_tval e env tenv tequals (n+1)
+ *   |e::elist1 ->
+ *     begin
+ *       match expr_tval e env tenv tequals (n+1) with
+ *       |(env1,tenv1,tequals1,n1) -> secondBlock_tval elist1 env1 tenv1 tequals1 n1
+ *     end
+ *   |_ -> raise Error *)
 
 
 ;;
