@@ -858,11 +858,11 @@ and equal_type (t1:Program.t) (t2:Program.t) :bool =
   (* Format.printf "@[t1=%a\nt2=%a\n@." pp_type t1 pp_type t2; *)
   match t1,t2 with
   |T s1,T s2 when s1 = s2 -> true
-  |_,T s1 -> raise Error2
   |Int,Int -> true
   |Double,Double -> true
   |Bool,Bool -> true
   |String,String -> true
+  |t,Any -> true
   |Any,t -> true
   |Unit,Unit -> true
   |List t3,List t4 -> equal_type t3 t4
@@ -954,7 +954,7 @@ and pat_tuple_tval (plist:Program.p list) (env:Program.env) (tenv:Program.tenv) 
     |p::[] ->
       begin
         match pat_tval p env tenv tequals (n+1) with
-        |(env1,tenv1,tequals1,n1) -> (((t n)::[]),tequals1,n1)
+        |(env1,tenv1,tequals1,n1) -> (((t n1)::[]),tequals1,n1)
       end
     |p::plist1 ->
       begin
@@ -962,7 +962,7 @@ and pat_tuple_tval (plist:Program.p list) (env:Program.env) (tenv:Program.tenv) 
         |(env1,tenv1,tequals1,n1) ->
           begin
             match pat_tuple_tval plist1 env1 tenv1 tequals1 n1 with
-            |(tlist,tequals2,n2) -> (((t n)::[])@tlist,tequals2,n2)
+            |(tlist,tequals2,n2) -> (((t n1)::[])@tlist,tequals2,n2)
           end
       end
     |_ -> raise Error
@@ -1036,7 +1036,7 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
           |Tuple tlist when (equal_type t1 (Tuple (tuple_ftt tlist tequals))) -> (t n1)
                                
           |_ when (equal_type t1 (find_type_tequals t2 tequals)) -> (t n1)
-          |_ -> raise Error1
+          |_ -> raise Error
         end
       |Tuple tlist,t1 -> Tuple ((t n2)::tlist)
       |_ -> raise Error
@@ -1138,7 +1138,17 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |String,String -> String
       |String,Int -> String
       |String,Double -> String
-      |List t1,t2 when (equal_type t1 t2) -> List t1
+      |List t1,List t2 when (equal_type t1 (find_type_tequals t2 tequals)) -> (t n1)
+      |List t1,t2 ->
+        begin
+          match t2 with
+          |List t3 when (equal_type t1 (List (find_type_tequals t3 tequals))) -> (t n1)
+          |Tuple tlist when (equal_type t1 (Tuple (tuple_ftt tlist tequals))) -> (t n1)
+                               
+          |_ when (equal_type t1 (find_type_tequals t2 tequals)) -> (t n1)
+          |_ -> raise Error1
+        end
+
       |Tuple tlist,t -> Tuple (remove_list t tlist [])
       |_ -> raise Error
     end
