@@ -9,6 +9,7 @@ exception NoSourcetoSubError
 exception NoMatchPatternError
 exception NotMatchExpressionError
 open Syntax
+open Pprint
 (* Expr_Eval-------------------------------------------------------------- *)
 
 let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.evalResult  =
@@ -756,10 +757,10 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
   |String s -> (env,tenv,(((t n),String)::tequals),n)
   |Var s -> (env,tenv,(((t n),(find_type env s))::tequals),n)
   |Null -> (env,tenv,(((t n),(t (n+1)))::tequals),n+1)
-  |Nil -> (env,tenv,(((t n),(List (t (n+1))))::tequals),n)
+  |Nil -> (env,tenv,(((t n),(List (t (n+1))))::tequals),n+1)
   |Cons(e1,e2) ->
     begin
-      match expr_tval e1 env tenv (((t (n+2)),(t (n+1)))::((t n),List (t (n+1)))::tequals) (n+2) with
+      match expr_tval e1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) with
       |(env1,tenv1,tequals1,n1) -> expr_tval e2 env1 tenv1 (((t (n1+1)),(t n))::tequals1) (n1+1)
     end
   |Tuple list ->
@@ -769,12 +770,166 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
     end
   |Declrt1(t1,s,e) -> expr_tval e ((s,t1,None)::env) tenv (((t (n+1)),t1)::((t n),Unit)::tequals) (n+1)
   |Declrt2(t1,s) -> (((s,t1,None)::env),tenv,((t (n+1),t1)::((t n),Unit)::tequals),n)
+  |Formu(p,e) ->
+    begin
+      match expr_tval e env tenv (((t n),Unit)::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match makeEnvFormu p (n+1) env1 with
+          |(env2,n2) -> (env2,tenv1,tequals1,n1)
+        end
+    end
+  |Formu2(e1,e2) ->
+    begin
+      match expr_tval e2 env tenv (((t n),Unit)::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match e1 with
+          |UseIns1(e3,fi_n) ->
+            begin
+              match splitSF e1 [] with
+              |(ins_n,fids) -> ((updateFids_tval ins_n fids (n+1) env1),tenv1,tequals1,n1)
+            end
+          |UseIns2(e3,e4) ->
+            begin
+              match splitSF2 e1 [] env tenv with
+              |(ins_n,fids) -> ((updateFids_tval ins_n fids (n+1) env1),tenv1,tequals1,n1)
+            end
+          |_ -> raise Error
+        end
+    end
+  |AOperate(aop,e1,e2) ->
+    begin
+      match expr_tval e2 env tenv (((t n),Unit)::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          try
+            match expr_tval e1 env1 tenv1 tequals1 (n1+1) with
+            |(env2,tenv2,tequals2,n2) -> ((aOperateType e1 (n1+1) (n+1) aop env2 tequals2),tenv2,tequals2,n2)
+          with
+          |NoValueError -> ((aOperateType e1 (n1+1) (n+1) Eq env1 tequals1),tenv1,tequals1,n1)
+        end
+    end
+  |SubFormu(e,p) ->
+    begin
+      match expr_tval e env tenv (((t n),Unit)::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match pat_tval p env1 tenv1 tequals1 (n1+1) with
+          |(env2,tenv2,tequals2,n2) ->
+            begin
+              match e with
+              |Var s -> (((s,(operateType (n+1) (n1+1) (Sub2:Program.op) tequals2),None)::env2),tenv2,tequals2,n2)
+              |_ -> raise Error
+            end
+        end
+    end
 
+(* Pat_Tval--------------------------------------------------------------- *)
+
+and pat_tval (p:Program.p) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
+  match p with
+  |Int i -> (env,tenv,(((t n),Int)::tequals),n)
+  |Double d -> (env,tenv,(((t n),Double)::tequals),n)
+  |Bool b -> (env,tenv,(((t n),Bool)::tequals),n)
+  |String s -> (env,tenv,(((t n),String)::tequals),n)
+  |Var s -> (env,tenv,(((t n),(find_type env s))::tequals),n)
+  |Nil -> (env,tenv,(((t n),(List (t (n+1))))::tequals),n)
+  |Wild -> (env,tenv,(((t n),Any)::tequals),n)
+  |Cons(p1,p2) ->
+    begin
+      match pat_tval p1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) -> pat_tval p2 env1 tenv1 (((t (n1+1)),(t n))::tequals1) (n1+1)
+    end
+  |Tuple list ->
+    begin
+      match pat_tuple_tval list env tenv tequals n with
+      |(tlist,tequals1,n1) -> (env,tenv,(((t n),(Tuple tlist))::tequals1),n1)
+    end
+  
 (* tval's function!------------------------------------------------------- *)
+
+and remove_list a list flist =
+  match list with
+  |a1::list1 -> if a1==a then remove_list a list flist else remove_list a list1 (a1::flist)
+  |[] -> flist
+
+and equal_type (t1:Program.t) (t2:Program.t) :bool =
+  Format.printf "@[t1=%a\nt2=%a\n@." pp_type t1 pp_type t2;
+  match t1,t2 with
+  |T s1,T s2 when s1 = s2 -> true
+  |_,T s1 -> raise Error2
+  |Int,Int -> true
+  |Double,Double -> true
+  |Bool,Bool -> true
+  |String,String -> true
+  |Any,t -> true
+  |Unit,Unit -> true
+  |List t3,List t4 -> equal_type t3 t4
+  |Tuple tlist1,Tuple tlist2 -> equal_type_tuple tlist1 tlist2
+  |Fun(t1,t2),Fun(t3,t4) -> (equal_type t1 t3) && (equal_type t2 t4)
+  |Struct(env1),Struct(env2) -> equal_type_env env1 env2
+  |_ -> false
+  
+and equal_type_tuple (tlist1:Program.t list) (tlist2:Program.t list) :bool =
+  match tlist1,tlist2 with
+  |t1::[],t2::[] -> equal_type t1 t2
+  |t1::tlist3,t2::tlist4 ->
+    begin
+      match equal_type t1 t2 with
+      |true -> equal_type_tuple tlist3 tlist4
+      |false -> false
+    end
+  |_ -> raise Error
+
+and equal_type_env (env1:Program.env) (env2:Program.env) :bool =
+  match env1,env2 with
+  |(s1,t1,v1)::[],(s2,t2,v2)::[] when (s1=s2) -> equal_type t1 t2
+  |(s1,t1,v1)::env3,(s2,t2,v2)::env4 when (s1=s2) ->
+    begin
+      match equal_type t1 t2 with
+      |true -> equal_type_env env3 env4
+      |false -> false
+    end
+  |_,_ -> raise Error
+
 and find_type (env:Program.env) (s:string) :Program.t =
   match env with
   |(s1,t,None)::env1 -> if String.equal s s1 then t else find_type env1 s
   |[] -> raise NoValueError
+  |_ -> raise Error
+
+and find_type_tequals (t:Program.t) (tequals:Program.tequals) :Program.t =
+  match tequals with
+  |(t1,t2)::tequals1 ->
+    begin
+      match t1,t with
+      |T s1,T s2 ->
+        begin
+          match t2 with
+          |T s -> find_type_tequals t tequals1
+          |_ -> if String.equal s1 s2 then t2 else find_type_tequals t tequals1
+        end
+      |_ -> t
+    end
+  |[] -> raise Error
+
+and tuple_ftt (tlist:Program.t list) (tequals:Program.tequals) :Program.t list =
+  match tlist with
+  |t::[] ->
+    begin
+      match find_type_tequals t tequals with
+      |t1 -> t1::[]
+    end
+  |t::tlist1 ->
+    begin
+      match find_type_tequals t tequals with
+      |t1 ->
+        begin
+          match tuple_ftt tlist1 tequals with
+          |tlist2 -> (t1::tlist2)
+        end
+    end
   |_ -> raise Error
 
 and expr_tuple_tval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :(Program.t list * Program.tequals * int) =
@@ -782,20 +937,216 @@ and expr_tuple_tval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv)
     match elist with
     |e::[] ->
       begin
-        match expr_tval e env tenv tequals n with
-        |(env1,tenv1,tequals1,n1) -> (((t n)::[]),tequals1,n1)
+        match expr_tval e env tenv tequals (n+1) with
+        |(env1,tenv1,tequals1,n1) -> (((t n1)::[]),tequals1,n1)
       end
     |e::elist1 ->
       begin
-        match expr_tval e env tenv tequals n with
+        match expr_tval e env tenv tequals (n+1) with
         |(env1,tenv1,tequals1,n1) ->
           begin
             match expr_tuple_tval elist1 env1 tenv1 tequals1 n1 with
+            |(tlist,tequals2,n2) -> (((t n1)::[])@tlist,tequals2,n2)
+          end
+      end
+    |_ -> raise Error
+  end
+
+and pat_tuple_tval (plist:Program.p list) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :(Program.t list * Program.tequals * int) =
+  begin
+    match plist with
+    |p::[] ->
+      begin
+        match pat_tval p env tenv tequals (n+1) with
+        |(env1,tenv1,tequals1,n1) -> (((t n)::[]),tequals1,n1)
+      end
+    |p::plist1 ->
+      begin
+        match pat_tval p env tenv tequals (n+1) with
+        |(env1,tenv1,tequals1,n1) ->
+          begin
+            match pat_tuple_tval plist1 env1 tenv1 tequals1 n1 with
             |(tlist,tequals2,n2) -> (((t n)::[])@tlist,tequals2,n2)
           end
       end
     |_ -> raise Error
   end
+
+and makeEnvFormu (p:Program.p) (n:int) (env:Program.env) :(Program.env * int) =
+  match p with
+  |Var s -> (((s,(t n),None)::env),n)
+  |Tuple plist ->
+    begin
+      match plist with
+      |p1::[] -> makeEnvFormu p1 (n+1) env 
+      |p1::plist1 ->
+        begin
+          match makeEnvFormu p1 (n+1) env  with
+          |(env1,n1) -> makeEnvFormu (Tuple plist1) (n1+1) env1
+        end
+      |_ -> raise Error
+    end
+  |_ -> (env,n)
+
+and updateFids_tval (ins_n:string) (fids:string list) (n:int) (env:Program.env) :Program.env =
+  match find env ins_n with
+  |Struct(st_n,field) ->
+    begin
+      match fids with
+      |fi_n::[] -> (ins_n,(T st_n),Some (Struct(st_n,((fi_n,(t n),None)::(find_remove field fi_n [] )))))::(find_remove env ins_n [])
+      |fi_n::fids1 ->
+        begin
+          match updateFids_tval fi_n fids1 n field with
+          |field1 -> ((ins_n,(T st_n),Some (Struct(st_n,field1)))::(find_remove env ins_n []))
+        end
+      |_ -> raise Error
+    end
+  |_ -> raise Error
+
+and aOperateType (e:Program.e) (n1:int) (n2:int) (aop:Program.aop) (env:Program.env) (tequals:Program.tequals) :Program.env =
+  match e with
+  |Var s ->
+    begin
+      match aop with
+      |Eq -> (s,(find_type_tequals (t n2) tequals),None)::env
+      |_ ->
+        begin
+          match operateType n1 n2 (changeaop_to_op aop) tequals with
+          |t -> (s,t,None)::(find_remove env s [])
+        end
+    end
+  |_ -> raise Error
+
+
+and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Program.t =
+  match op with
+  |Add ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Int,Int -> Int
+      |Int,Double -> Double
+      |Int,String -> String
+      |Double,Double -> Double
+      |Double,Int -> Double
+      |Double,String -> String
+      |String,String -> String
+      |String,Int -> String
+      |String,Double -> String
+      |List t1,List t2 when (equal_type t1 (find_type_tequals t2 tequals)) -> (t n1)
+      |List t1,t2 ->
+        begin
+          match t2 with
+          |List t3 when (equal_type t1 (List (find_type_tequals t3 tequals))) -> (t n1)
+          |Tuple tlist when (equal_type t1 (Tuple (tuple_ftt tlist tequals))) -> (t n1)
+                               
+          |_ when (equal_type t1 (find_type_tequals t2 tequals)) -> (t n1)
+          |_ -> raise Error1
+        end
+      |Tuple tlist,t1 -> Tuple ((t n2)::tlist)
+      |_ -> raise Error
+    end
+  |Sub ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Int,Int -> Int
+      |Int,Double -> Double
+      |Double,Double -> Double
+      |Double,Int -> Double
+      |_ -> raise Error
+    end
+  |Mul ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Int,Int -> Int
+      |Int,Double -> Double
+      |Double,Double -> Double
+      |Double,Int -> Double
+      |_ -> raise Error
+    end
+  |Div ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Int,Int -> Int
+      |Int,Double -> Double
+      |Double,Double -> Double
+      |Double,Int -> Double
+      |_ -> raise Error
+    end
+  |Mod ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Int,Int -> Int
+      |_ -> raise Error
+    end
+  |Lt ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Int,Int -> Bool
+      |Int,Double -> Bool
+      |Double,Double -> Bool
+      |Double,Int -> Bool
+      |_ -> raise Error
+    end
+  |LtEq ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Int,Int -> Bool
+      |Int,Double -> Bool
+      |Double,Double -> Bool
+      |Double,Int -> Bool
+      |_ -> raise Error
+    end
+  |Gt ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Int,Int -> Bool
+      |Int,Double -> Bool
+      |Double,Double -> Bool
+      |Double,Int -> Bool
+      |_ -> raise Error
+    end
+  |GtEq ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Int,Int -> Bool
+      |Int,Double -> Bool
+      |Double,Double -> Bool
+      |Double,Int -> Bool
+      |_ -> raise Error
+    end
+  |CEq ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Int,Int -> Bool
+      |Int,Double -> Bool
+      |Double,Double -> Bool
+      |Double,Int -> Bool
+      |String,String -> Bool
+      |_ -> raise Error
+    end
+  |And ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Bool,Bool -> Bool
+      |_ -> raise Error
+    end
+  |Or ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Bool,Bool -> Bool
+      |_ -> raise Error
+    end
+  |Sub2 ->
+    begin
+      match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |String,String -> String
+      |String,Int -> String
+      |String,Double -> String
+      |List t1,t2 when (equal_type t1 t2) -> List t1
+      |Tuple tlist,t -> Tuple (remove_list t tlist [])
+      |_ -> raise Error
+    end
+
 
 ;;
 
@@ -803,13 +1154,14 @@ and expr_tuple_tval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv)
 
 let rec unif (tequals:Program.tequals) (solutions:Program.tequals) =
   match tequals with
-  |[] -> true 
+  |[] -> Some solutions
 
   |(Int,Int)::tequals1 -> unif tequals1 solutions
   |(Double,Double)::tequals1 -> unif tequals1 solutions
   |(Bool,Bool)::tequals1 -> unif tequals1 solutions
   |(String,String)::tequals1 -> unif tequals1 solutions
-  |(Any,Any)::tequals1 -> unif tequals1 solutions
+  |(Any,_)::tequals1 -> unif tequals1 solutions
+  |(_,Any)::tequals1 -> unif tequals1 solutions
   |(Unit,Unit)::tequals1 -> unif tequals1 solutions
 
   |(T s1,T s2)::tequals1 -> unif (changeTequals s1 ((T s2):Program.t) tequals1 []) ((T s1,T s2)::(changeSolutions s1 ((T s2):Program.t) solutions [] ))
@@ -823,10 +1175,9 @@ let rec unif (tequals:Program.tequals) (solutions:Program.tequals) =
     begin
       match env_unif env1 env2 with
       |true -> unif tequals1 solutions
-      |false -> false
+      |false -> None
     end
-  
-  |(t3,t4)::tequals1 -> false
+  |(t3,t4)::tequals1 -> None
 
 (* unif's function!------------------------------------------------------- *)
       
@@ -848,7 +1199,18 @@ and changeTequals (s1:string) (t2:Program.t) (tequals:Program.tequals) (ftequals
                                            
   |(List(T s),t3)::tequals1 when s = s1 -> changeTequals s1 t2 tequals1 ((List(t2),t3)::ftequals)
   |(t3,List(T s))::tequals1 when s = s1 -> changeTequals s1 t2 tequals1 ((t3,List(t2))::ftequals)
-                                         
+
+  |(Tuple(list),t3)::tequals1 ->
+    begin
+      match tuple_changelist list s1 t2 with
+      |list1 -> changeTequals s1 t2 tequals1 ((Tuple(list1),t3)::ftequals)
+    end
+  |(t3,Tuple(list))::tequals1 ->
+    begin
+      match tuple_changelist list s1 t2 with
+      |list1 -> changeTequals s1 t2 tequals1 ((t3,Tuple(list1))::ftequals)
+    end
+                                   
   |(t4,t5)::tequals1 -> changeTequals s1 t2 tequals1 ((t4,t5)::ftequals)
 
 and changeSolutions (s1:string) (t2:Program.t) (solutions:Program.tequals) (fsolutions:Program.tequals)=
@@ -863,6 +1225,12 @@ and changeSolutions (s1:string) (t2:Program.t) (solutions:Program.tequals) (fsol
 
   |(t3,List(T s))::solutions1 when s = s1 -> changeSolutions s1 t2 solutions1 ((t3,List(t2))::fsolutions)
 
+  |(t3,Tuple(list))::solutions1 ->
+    begin
+      match tuple_changelist list s1 t2 with
+      |list1 -> changeSolutions s1 t2 solutions1 ((t3,Tuple(list1))::fsolutions)
+    end
+
   |(t4,t5)::solutions1 -> changeSolutions s1 t2 solutions1 ((t4,t5)::fsolutions)
 
 and tuple_unif (tlist1:Program.t list) (tlist2:Program.t list) (tequals:Program.tequals) :Program.tequals =
@@ -873,14 +1241,35 @@ and tuple_unif (tlist1:Program.t list) (tlist2:Program.t list) (tequals:Program.
 
 and env_unif (env1:Program.env) (env2:Program.env) :bool =
   match env1,env2 with
-  |(s1,t1,v1)::[],(s2,t2,v2)::[] when (s1=s2) -> unif ((t1,t2)::[]) []
+  |(s1,t1,v1)::[],(s2,t2,v2)::[] when (s1=s2) ->
+    begin
+      match unif ((t1,t2)::[]) [] with
+      |Some solutions -> true
+      |None -> false
+    end
   |(s1,t1,v1)::env3,(s2,t2,v2)::env4 when (s1=s2) ->
     begin
       match unif ((t1,t2)::[]) [] with
-      |true -> env_unif env3 env4 
-      |false -> false
+      |Some solutions -> env_unif env3 env4 
+      |None -> false
     end
   |_,_ -> raise Error
+
+and tuple_changelist (list:Program.t list) (s1:string) (t2:Program.t) :Program.t list =
+  match list with
+  |(T s)::[] -> if String.equal s s1 then t2::[] else (T s)::[]
+  |t1::[] -> t1::[]
+  |(T s)::list1  ->
+    begin
+      match tuple_changelist list1 s1 t2 with
+      |list2 -> if String.equal s s1 then t2::list2 else (T s)::list2
+    end
+  |t1::list1 ->
+    begin
+      match tuple_changelist list1 s1 t2 with
+      |list2 -> t1::list2
+    end
+  |_ -> raise Error
 
 ;;
 

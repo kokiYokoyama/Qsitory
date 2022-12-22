@@ -6,7 +6,7 @@ all: qsitory_main.ml syntax.ml evaluation.ml interactive.ml readfile.ml pprint.m
 	ocamlopt -c parser.mli
 	ocamlopt -c lexer.ml
 	ocamlopt -c parser.ml
-	ocamlopt -o qsitory tools.cmx syntax.cmx evaluation.cmx pprint.cmx parser.cmx lexer.cmx interactive.ml readfile.ml qsitory_main.ml
+	ocamlopt -o qsitory tools.cmx syntax.cmx pprint.cmx evaluation.cmx  parser.cmx lexer.cmx interactive.ml readfile.ml qsitory_main.ml
 
 clean:
 	rm -f *.cmi *.cmx *.o

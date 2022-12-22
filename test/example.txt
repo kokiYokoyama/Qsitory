@@ -1,3 +1,24 @@
+/*実装にあたり考える必要のあること
+
+:Declrt文で宣言した変数を宣言されてない型で更新(Formu文)できるようにするか
+ tがAnyであるか他であるかで型宣言されているかを確認
+:if文,for文などのローカル変数に対する処理
+:Dstruct文のevalでの処理(tenvを作るようにするか)
+ tvalの際に作るようにすると最終的な構造体の形で最初から渡されていることになるため．
+:envに追加している所全てでfind_removeをするべきか
+:多次元拡張for文の要素が揃ってないリストに対する対応
+ Noneによる処理を無視する方法?
+:tenvのmakeInsでもenvを作成する必要あり
+:ListのListに対応できてない
+
+*/
+
+/*type Error test----------------------------------------------------------*/
+
+//int : a = "A"
+
+/*eval test----------------------------------------------------------------*/
+
 //return文により強制終了がされているか
 /*
 def function1 (x) :
@@ -8,8 +29,8 @@ def function1 (x) :
 function1 2
 */
 
-/*
 //相互再帰関数の使用
+/*
 def f (x) :
    if x<3 :
       1
@@ -19,32 +40,32 @@ def f (x) :
 def g (x) :
    f (x)
 
-g 10
+g (10)
 */
 
 /*
 //定義前の関数を使用
 def function1 (x,y) :
    z=x+y
-   function0 z
+   function0 (z)
 
 def function0 (x) :
    x
 
-z=function1 2
-z 3
+z=function1 (2)
+z (3)
 */
 
-/*
 //再帰関数の使用
+/*
 def function1 (x,y) :
    z=x+y
    if z<10 :
-     (function1 z) 5
+     function1 (z) (5)
    else :
      z
 
-z=(function1 2) 3
+z=function1 (2) (3)
 */
 
 /*
@@ -117,19 +138,19 @@ match l :
  |[x,y,z] -> 2
 */
 
-
+/*
 if not 1<2 :
    1
 else :
    0
 
-/*
 if 1<2 :
    1
 else :
    0
 */
 
+//if x=1 :fun x -> x+2 else : fun x -> 2*x
 
 //1+2
 //5-2
@@ -157,11 +178,19 @@ l .-= (_,2)
 //2バイト文字に対応していないからエラー
 //i += "回"
 
-//c = [1,2]
-//c += 3
-//c += [4,5]
+//[1,2]
+//l=[ [1,2] , [3,4,5] ]
+//l+= [6,7,8,9]
+//lt=[ ("name",1) , ("age",2) , ("id",3) ]
+//lt+=("range",4)
+lt=[ [("name",1) , ("age",2)] , [("id",3)] ]
+lt+=[("range",4)]
+//c = [1,2,3]
+//c += 4
+//c += [5,6,7]
 //t = (1,2)
-//t += [3]
+//t += 3
+//t +="String"
 
 //i += 2
 
@@ -172,3 +201,7 @@ l .-= (_,2)
 string : name = "program"
 (name,since,where) = ("Qsitory",2022,"Japan")
 */
+
+//x=1
+//x="string"
+

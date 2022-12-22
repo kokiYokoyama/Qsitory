@@ -1,5 +1,5 @@
 exception Error
-        
+exception Error6        
 module Program = struct
   (* Definition------------------------------------------------------------*)
 
@@ -243,8 +243,8 @@ and expr_arglist_print list =
 and print_env (env:Program.env) =
   match env with
   |(s,t,Some v)::list -> Format.printf "(%s,%a,%a)::%a" s (fun _ -> print_type) t (fun _ -> print_value) v (fun _ -> print_env) list
+  |(s,t,None)::list -> Format.printf "(%s,%a,None)::%a" s (fun _ -> print_type) t (fun _ -> print_env) list
   | [] -> Format.printf "[]"
-  | _ -> raise Error
 
 (* type environment *)
 and print_tenv (tenv:Program.tenv) =
