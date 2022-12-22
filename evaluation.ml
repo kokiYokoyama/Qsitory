@@ -1185,6 +1185,17 @@ let rec unif (tequals:Program.tequals) (solutions:Program.tequals) =
  * t1 代入先
  * t2 代入要素
  * ftequals 代入終了後のtequals *)
+and changeType (s: string) (t: Program.t) (t1: Program.t) =
+  match t1 with
+  | T s1 when s = s1 -> t
+  | Fun(t11,t12) = Fun (changeType s t t11, changeType s t t12)
+  | List t11 -> List (changeType s t t11)
+  | Tuple tt -> Tuple (List.map (changeType s t) tt)
+
+and changeTequals (s:string) (t:Program.t) (tequals:Program.tequals) =
+  List.map (fun (t1,t2) -> (changeType s t t1,changeType s t t2)) tequals
+  
+(*              
 and changeTequals (s1:string) (t2:Program.t) (tequals:Program.tequals) (ftequals:Program.tequals)=  
   match tequals with
   |[]-> (List.rev(ftequals))
@@ -1212,7 +1223,7 @@ and changeTequals (s1:string) (t2:Program.t) (tequals:Program.tequals) (ftequals
     end
                                    
   |(t4,t5)::tequals1 -> changeTequals s1 t2 tequals1 ((t4,t5)::ftequals)
-
+ *)
 and changeSolutions (s1:string) (t2:Program.t) (solutions:Program.tequals) (fsolutions:Program.tequals)=
   match solutions with
   |[]-> (List.rev(fsolutions))
