@@ -63,61 +63,28 @@ let rec arrange_env (env:Program.env) (solutions:Program.tequals) (fenv:Program.
   |[] -> fenv
 
 and find_type_solutions (t:Program.t) (solutions:Program.tequals) :Program.t =
-  match solutions with
-  |(t1,t2)::solutions1 ->
+  match find_type_solutions2 t solutions with
+  |t2 ->
     begin
-      match t1,t with
-      |T s1,T s2 ->
-        begin
-          match t2 with
-          |T s -> find_type_solutions t solutions1
-          |_ -> if String.equal s1 s2 then find_type_solutions2 t2 solutions else find_type_solutions t solutions1
-        end
-      |T s1,_ -> t
-      |_ -> raise Error
+      match t2 with
+      |List (T s2) -> List (find_type_solutions (find_type_solutions2 (T s2) solutions) solutions)
+      |Tuple (tlist) -> Tuple(tuple_fts tlist solutions)
+      |_ -> t2
     end
-  |[] -> raise Error
 
 and find_type_solutions2 (t:Program.t) (solutions:Program.tequals) :Program.t =
   match solutions with
   |(t1,t2)::solutions1 ->
     begin
       match t1,t with
-      |T s1,List (T s2) -> if String.equal s1 s2 then find_type_solutions2 (List t2) solutions else find_type_solutions2 t solutions1
-      |T s1,List (Tuple(tlist)) -> List(Tuple(tuple_fts tlist solutions))
-      |T s1,Tuple(tlist) -> Tuple(tuple_fts tlist solutions)
+      |T s1,T s2 -> if String.equal s1 s2 then t2 else find_type_solutions2 t solutions1
       |T s1,_ -> t
       |_ -> raise Error
     end
   |[] -> raise Error
 
 and tuple_fts (tlist:Program.t list) (solutions:Program.tequals) :Program.t list =
-  match tlist with
-  |t::[] ->
-    begin
-      match t with
-      |(T s) -> (find_type_solutions t solutions)::[]
-      |_ -> t::[]
-    end
-  |t::tlist1 ->
-    begin
-      match t with
-      |(T s) ->
-        begin
-          match find_type_solutions t solutions with
-          |t1 ->
-            begin
-              match tuple_fts tlist1 solutions with
-              |tlist2 -> t1::tlist2
-            end
-        end
-      |_ ->
-        begin
-          match tuple_fts tlist1 solutions with
-          |tlist2 -> t::tlist2
-        end
-    end
-  |_ -> raise Error
+  List.map (fun t1 -> find_type_solutions t1 solutions) tlist
 
 let rec main_eval (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) =
   match ee with

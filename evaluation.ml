@@ -855,7 +855,7 @@ and remove_list a list flist =
   |[] -> flist
 
 and equal_type (t1:Program.t) (t2:Program.t) :bool =
-  Format.printf "@[t1=%a\nt2=%a\n@." pp_type t1 pp_type t2;
+  (* Format.printf "@[t1=%a\nt2=%a\n@." pp_type t1 pp_type t2; *)
   match t1,t2 with
   |T s1,T s2 when s1 = s2 -> true
   |_,T s1 -> raise Error2
@@ -900,6 +900,16 @@ and find_type (env:Program.env) (s:string) :Program.t =
   |_ -> raise Error
 
 and find_type_tequals (t:Program.t) (tequals:Program.tequals) :Program.t =
+  match find_type_tequals2 t tequals with
+  |t2 ->
+    begin
+      match t2 with
+      |List (T s2) -> List (find_type_tequals (find_type_tequals2 (T s2) tequals) tequals)
+      |Tuple (tlist) -> Tuple(tuple_ftt tlist tequals)
+      |_ -> t2
+    end
+
+and find_type_tequals2 (t:Program.t) (tequals:Program.tequals) :Program.t =
   match tequals with
   |(t1,t2)::tequals1 ->
     begin
@@ -907,30 +917,16 @@ and find_type_tequals (t:Program.t) (tequals:Program.tequals) :Program.t =
       |T s1,T s2 ->
         begin
           match t2 with
-          |T s -> find_type_tequals t tequals1
-          |_ -> if String.equal s1 s2 then t2 else find_type_tequals t tequals1
+          |T s -> find_type_tequals2 t tequals1
+          |_ -> if String.equal s1 s2 then t2 else find_type_tequals2 t tequals1
         end
-      |_ -> t
+      |T s1,_ -> t
+      |_ -> raise Error
     end
   |[] -> raise Error
 
 and tuple_ftt (tlist:Program.t list) (tequals:Program.tequals) :Program.t list =
-  match tlist with
-  |t::[] ->
-    begin
-      match find_type_tequals t tequals with
-      |t1 -> t1::[]
-    end
-  |t::tlist1 ->
-    begin
-      match find_type_tequals t tequals with
-      |t1 ->
-        begin
-          match tuple_ftt tlist1 tequals with
-          |tlist2 -> (t1::tlist2)
-        end
-    end
-  |_ -> raise Error
+  List.map (fun t1 -> find_type_tequals t1 tequals) tlist
 
 and expr_tuple_tval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :(Program.t list * Program.tequals * int) =
   begin
@@ -1164,9 +1160,9 @@ let rec unif (tequals:Program.tequals) (solutions:Program.tequals) =
   |(_,Any)::tequals1 -> unif tequals1 solutions
   |(Unit,Unit)::tequals1 -> unif tequals1 solutions
 
-  |(T s1,T s2)::tequals1 -> unif (changeTequals s1 ((T s2):Program.t) tequals1 []) ((T s1,T s2)::(changeSolutions s1 ((T s2):Program.t) solutions [] ))
-  |(T s1,t2)::tequals1 -> unif (changeTequals s1 t2 tequals1 [] ) ((T s1,t2)::(changeSolutions s1 t2 solutions []))
-  |(t2,T s1)::tequals1 -> unif (changeTequals s1 t2 tequals1 [] ) ((T s1,t2)::(changeSolutions s1 t2 solutions []))
+  |(T s1,T s2)::tequals1 -> unif (changeTequals s1 ((T s2):Program.t) tequals1) ((T s1,T s2)::(changeSolutions s1 ((T s2):Program.t) solutions))
+  |(T s1,t2)::tequals1 -> unif (changeTequals s1 t2 tequals1) ((T s1,t2)::(changeSolutions s1 t2 solutions))
+  |(t2,T s1)::tequals1 -> unif (changeTequals s1 t2 tequals1) ((T s1,t2)::(changeSolutions s1 t2 solutions))
 
   |(Fun(t1,t2),Fun(t3,t4))::tequals1 -> unif ((t1,t3)::(t2,t4)::tequals1) solutions                                  
   |(List(t1),List(t2))::tequals1 -> unif ((t1,t2)::tequals1) solutions
@@ -1188,12 +1184,16 @@ let rec unif (tequals:Program.tequals) (solutions:Program.tequals) =
 and changeType (s: string) (t: Program.t) (t1: Program.t) =
   match t1 with
   | T s1 when s = s1 -> t
-  | Fun(t11,t12) = Fun (changeType s t t11, changeType s t t12)
+  | Fun(t11,t12) -> Fun (changeType s t t11, changeType s t t12)
   | List t11 -> List (changeType s t t11)
   | Tuple tt -> Tuple (List.map (changeType s t) tt)
+  | _ -> t1
 
-and changeTequals (s:string) (t:Program.t) (tequals:Program.tequals) =
+and changeTequals (s:string) (t:Program.t) (tequals:Program.tequals) :Program.tequals =
   List.map (fun (t1,t2) -> (changeType s t t1,changeType s t t2)) tequals
+
+and changeSolutions (s:string) (t:Program.t) (solutions:Program.tequals) =
+  List.map (fun (t1,t2) -> (t1,changeType s t t2)) solutions
   
 (*              
 and changeTequals (s1:string) (t2:Program.t) (tequals:Program.tequals) (ftequals:Program.tequals)=  
@@ -1224,25 +1224,25 @@ and changeTequals (s1:string) (t2:Program.t) (tequals:Program.tequals) (ftequals
                                    
   |(t4,t5)::tequals1 -> changeTequals s1 t2 tequals1 ((t4,t5)::ftequals)
  *)
-and changeSolutions (s1:string) (t2:Program.t) (solutions:Program.tequals) (fsolutions:Program.tequals)=
-  match solutions with
-  |[]-> (List.rev(fsolutions))
-
-  |(t3,T s)::solutions1 when s = s1 -> changeSolutions s1 t2 solutions1 ((t3,t2)::fsolutions)
-
-  |(t4,Fun(T s2,T s3))::solutions1 when (s2 = s1) && (s3 = s1) -> changeSolutions s1 t2 solutions1 ((t4,Fun(t2,t2))::fsolutions)
-  |(t4,Fun(T s,t3))::solutions1 when s = s1 -> changeSolutions s1 t2 solutions1 ((t4,Fun(t2,t3))::fsolutions)
-  |(t4,Fun(t3,T s))::solutions1 when s = s1 -> changeSolutions s1 t2 solutions1 ((t4,Fun(t3,t2))::fsolutions)
-
-  |(t3,List(T s))::solutions1 when s = s1 -> changeSolutions s1 t2 solutions1 ((t3,List(t2))::fsolutions)
-
-  |(t3,Tuple(list))::solutions1 ->
-    begin
-      match tuple_changelist list s1 t2 with
-      |list1 -> changeSolutions s1 t2 solutions1 ((t3,Tuple(list1))::fsolutions)
-    end
-
-  |(t4,t5)::solutions1 -> changeSolutions s1 t2 solutions1 ((t4,t5)::fsolutions)
+(* and changeSolutions (s1:string) (t2:Program.t) (solutions:Program.tequals) (fsolutions:Program.tequals)=
+ *   match solutions with
+ *   |[]-> (List.rev(fsolutions))
+ * 
+ *   |(t3,T s)::solutions1 when s = s1 -> changeSolutions s1 t2 solutions1 ((t3,t2)::fsolutions)
+ * 
+ *   |(t4,Fun(T s2,T s3))::solutions1 when (s2 = s1) && (s3 = s1) -> changeSolutions s1 t2 solutions1 ((t4,Fun(t2,t2))::fsolutions)
+ *   |(t4,Fun(T s,t3))::solutions1 when s = s1 -> changeSolutions s1 t2 solutions1 ((t4,Fun(t2,t3))::fsolutions)
+ *   |(t4,Fun(t3,T s))::solutions1 when s = s1 -> changeSolutions s1 t2 solutions1 ((t4,Fun(t3,t2))::fsolutions)
+ * 
+ *   |(t3,List(T s))::solutions1 when s = s1 -> changeSolutions s1 t2 solutions1 ((t3,List(t2))::fsolutions)
+ * 
+ *   |(t3,Tuple(list))::solutions1 ->
+ *     begin
+ *       match tuple_changelist list s1 t2 with
+ *       |list1 -> changeSolutions s1 t2 solutions1 ((t3,Tuple(list1))::fsolutions)
+ *     end
+ * 
+ *   |(t4,t5)::solutions1 -> changeSolutions s1 t2 solutions1 ((t4,t5)::fsolutions) *)
 
 and tuple_unif (tlist1:Program.t list) (tlist2:Program.t list) (tequals:Program.tequals) :Program.tequals =
   match tlist1,tlist2 with
