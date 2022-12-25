@@ -106,11 +106,11 @@ let rec main_tval (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) =
   |e::ee1 ->
     begin
       match expr_tval e env tenv [] 0 with
-      |(env1,tenv1,tequals,n) ->
+      |(env1,tenv1,tequals,n) -> print_tequals tequals;
         begin
           match unif tequals [] with
           |Some solutions ->
-            print_tequals solutions;
+            (* print_tequals solutions; *)
             main_tval ee1 (arrange_env env1 solutions []) tenv1
           |None -> raise TypeError
         end
