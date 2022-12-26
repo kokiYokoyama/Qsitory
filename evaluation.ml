@@ -757,7 +757,7 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
   |String s -> (env,tenv,(((t n),String)::tequals),n)
   |Var s -> (env,tenv,(((t n),(find_type env s))::tequals),n)
   |Null -> (env,tenv,(((t n),(t (n+1)))::tequals),n+1)
-  |Nil -> (env,tenv,(((t n),(List (t (n+1))))::tequals),n+1)
+  |Nil -> (env,tenv,(((t n),(List(t (n+1))))::tequals),n+1)
   |Cons(e1,e2) ->
     begin
       match expr_tval e1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) with
@@ -772,11 +772,24 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
   |Declrt2(t1,s) -> (((s,t1,None)::env),tenv,((t (n+1),t1)::((t n),Unit)::tequals),n)
   |Formu(p,e) ->
     begin
-      match expr_tval e env tenv (((t n),Unit)::tequals) (n+1) with
-      |(env1,tenv1,tequals1,n1) ->
+      match e with
+      |Nil ->
         begin
-          match makeEnvFormu p (n+1) env1 with
-          |(env2,n2) -> (env2,tenv1,tequals1,n1)
+          match expr_tval e env tenv ((t (n+2),Any)::((t n),Unit)::tequals) (n+1) with
+          |(env1,tenv1,tequals1,n1) ->
+            begin
+              match makeEnvFormu p (n+1) env1 with
+              |(env2,n2) -> (env2,tenv1,tequals1,n1)
+            end
+        end
+      |_ ->
+        begin
+          match expr_tval e env tenv (((t n),Unit)::tequals) (n+1) with
+          |(env1,tenv1,tequals1,n1) ->
+            begin
+              match makeEnvFormu p (n+1) env1 with
+              |(env2,n2) -> (env2,tenv1,tequals1,n1)
+            end
         end
     end
   |Formu2(e1,e2) ->
@@ -798,10 +811,10 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
           |_ -> raise Error
         end
     end
-  |AOperate(aop,e1,e2) ->
+  |AOperate(aop,e1,e2) -> 
     begin
       match expr_tval e2 env tenv (((t n),Unit)::tequals) (n+1) with
-      |(env1,tenv1,tequals1,n1) ->
+      |(env1,tenv1,tequals1,n1) -> 
         begin
           try
             match expr_tval e1 env1 tenv1 tequals1 (n1+1) with
@@ -824,7 +837,7 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
             end
         end
     end
-  |Operate(op,e1,e2) ->
+  |Operate(op,e1,e2) -> 
     begin
       match expr_tval e1 env tenv tequals (n+1) with
       |(env1,tenv1,tequals1,n1) ->
@@ -893,6 +906,26 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
             end
           |_ -> raise Error
         end
+    end
+  |For(paraList,argList,e) ->
+    begin
+      match paraList,argList with
+      |[],[] -> (env,tenv,tequals,n)
+      |s1::paraList1,e1::argList1 ->
+        begin
+          match expr_tval e1 env tenv (((t (n+1)),List(t (n+2)))::((t n),Unit)::tequals) (n+1) with
+          |(env1,tenv1,tequals1,n1) ->   
+            begin
+              match makeEnvMatch (Cons(Var(s1),Nil)) (t (n+1)) env1 tequals1 with
+              |env2 ->
+                begin
+                  (* 2要素目以降 *)
+                  match secondFor_tval paraList1 argList1 env2 tenv1 tequals1 (n1+1) with
+                  |(env3,tenv2,tequals2,n2) -> expr_tval e env3 tenv2 tequals2 (n2+1)
+                end
+            end
+        end
+      |_ -> raise Error
     end
                                              
             
@@ -1323,6 +1356,19 @@ and secondMatch_tval (patlist:(Program.p * Program.e) list) (env:Program.env) (t
     end
   |_ -> raise Error
 
+and secondFor_tval (paraList:string list) (argList:Program.e list) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
+  match paraList,argList with
+  |[],[] -> (env,tenv,tequals,n) 
+  |s1::paraList1,e1::argList1 ->
+    begin
+      match expr_tval e1 env tenv (((t (n+1)),List(t (n+2)))::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match makeEnvMatch (Cons(Var(s1),Nil)) (t (n+1)) env1 tequals1 with
+          |env2 -> secondFor_tval paraList1 argList1 env2 tenv1 tequals1 (n1+1)
+        end
+    end
+  |_ -> raise Error
 ;;
 
 (* Unif------------------------------------------------------------------- *)
@@ -1335,8 +1381,6 @@ let rec unif (tequals:Program.tequals) (solutions:Program.tequals) =
   |(Double,Double)::tequals1 -> unif tequals1 solutions
   |(Bool,Bool)::tequals1 -> unif tequals1 solutions
   |(String,String)::tequals1 -> unif tequals1 solutions
-  |(Any,_)::tequals1 -> unif tequals1 solutions
-  |(_,Any)::tequals1 -> unif tequals1 solutions
   |(Unit,Unit)::tequals1 -> unif tequals1 solutions
 
   |(T s1,T s2)::tequals1 -> unif (changeTequals s1 ((T s2):Program.t) tequals1) ((T s1,T s2)::(changeSolutions s1 ((T s2):Program.t) solutions))
@@ -1352,6 +1396,8 @@ let rec unif (tequals:Program.tequals) (solutions:Program.tequals) =
       |true -> unif tequals1 solutions
       |false -> None
     end
+  |(Any,_)::tequals1 -> unif tequals1 solutions
+  |(_,Any)::tequals1 -> unif tequals1 solutions
   |(t3,t4)::tequals1 -> None
 
 (* unif's function!------------------------------------------------------- *)
