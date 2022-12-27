@@ -109,18 +109,18 @@ def function0 (x) :
 function0 1
 */
 
-/*
 i=0
 while i<5:
    i+=1
-*/
 
+/*
 z=[]
 d=[("key1",1),("key2",2)]
 fordict k,n in d:
    z+=k
 
 z+="string"
+*/
 
 /*
 z=[]
