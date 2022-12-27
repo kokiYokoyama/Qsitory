@@ -8,6 +8,7 @@ exception NoValueError
 exception NoSourcetoSubError
 exception NoMatchPatternError
 exception NotMatchExpressionError
+exception OperateTypeError
 open Syntax
 open Pprint
 (* Expr_Eval-------------------------------------------------------------- *)
@@ -211,6 +212,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
           |_ -> raise Error
         end
     end
+   
   |While(e1,e2) ->
     begin
       match expr_eval e1 env tenv with
@@ -927,7 +929,63 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
         end
       |_ -> raise Error
     end
-                                             
+  |For_dict(paraList,dict,e) ->
+    begin
+      match paraList,dict with
+      |s1::paraList1,Cons(e1,e2) ->
+        begin
+          match e1 with
+          |Tuple elist ->
+            begin
+              match List.map dict_tval elist with
+              |t::tlist1 ->
+                begin
+                  match makeEnvMatch (Var(s1)) t env tequals with
+                  |env1 ->
+                    (* 2要素目以降 *)
+                    match secondForDict_tval paraList1 tlist1 env1 tequals with
+                    |env2 ->
+                      begin
+                        match expr_tval e env2 tenv tequals (n+1) with
+                        |(env3,tenv2,tequals2,n2) ->
+                          begin
+                            match e2 with
+                            |Nil ->(env,tenv,tequals2,n2)
+                            |_ -> expr_tval (For_dict(paraList,e2,e)) env3 tenv2 tequals2 n2
+                          end
+                      end
+                end
+              |_ -> raise Error
+            end
+          |_ -> raise Error
+        end
+      |s1::paraList1,Var(s) ->
+        begin
+          match expr_tval (Var(s)) env tenv tequals (n+1) with
+          |(env1,tenv1,tequals1,n1) ->
+            begin
+              match find_type_tequals (t (n+1)) tequals1 with
+              |List(Tuple(tlist)) ->
+                begin
+                  match tlist with
+                  |t::tlist1 -> 
+                    begin
+                      match makeEnvMatch (Var(s1)) t env1 tequals1 with
+                      |env2 ->
+                        (* 2要素目以降 *)
+                        begin
+                          match secondForDict_tval paraList1 tlist1 env2 tequals with
+                          |env3 ->  expr_tval e env3 tenv1 tequals1 (n1+1)
+                        end
+                    end
+                  |_ -> raise Error
+                end
+              |_ -> raise Error
+            end         
+        end
+      |_ -> raise Error
+    end
+       
             
 
 (* Pat_Tval--------------------------------------------------------------- *)
@@ -1028,7 +1086,7 @@ and find_type_tequals2 (t:Program.t) (tequals:Program.tequals) :Program.t =
       |T s1,_ -> t
       |_ -> raise Error
     end
-  |[] -> raise Error
+  |[] -> t
 
 and tuple_ftt (tlist:Program.t list) (tequals:Program.tequals) :Program.t list =
   List.map (fun t1 -> find_type_tequals t1 tequals) tlist
@@ -1117,12 +1175,12 @@ and makeEnvMatch (p:Program.p) (t:Program.t) (env:Program.env) (tequals:Program.
           |_ -> raise Error
         end
         
-      |_ -> makeEnvMatch2 p t env
+      |_ -> makeEnvMatch2 p t1 env
     end
 
 and makeEnvMatch2 (p:Program.p) (t:Program.t) (env:Program.env) :Program.env =
   match p with
-  |Var s -> ((s,t,None)::env)
+  |Var s -> ((s,t,None)::(find_remove env s []))
   |Cons(p1,p2) ->
     begin
       match t with
@@ -1195,18 +1253,18 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |String,String -> String
       |String,Int -> String
       |String,Double -> String
-      |List t1,List t2 when (equal_type t1 (find_type_tequals t2 tequals)) -> (t n1)
+      |List t1,List t2 when (equal_type t1 (find_type_tequals t2 tequals)) -> List (find_type_tequals t2 tequals)
       |List t1,t2 ->
         begin
           match t2 with
-          |List t3 when (equal_type t1 (List (find_type_tequals t3 tequals))) -> (t n1)
-          |Tuple tlist when (equal_type t1 (Tuple (tuple_ftt tlist tequals))) -> (t n1)
+          |List t3 when (equal_type t1 (List (find_type_tequals t3 tequals))) -> List (List (find_type_tequals t3 tequals))
+          |Tuple tlist when (equal_type t1 (Tuple (tuple_ftt tlist tequals))) -> List (Tuple (tuple_ftt tlist tequals))
                                
-          |_ when (equal_type t1 (find_type_tequals t2 tequals)) -> (t n1)
-          |_ -> raise Error
+          |_ when (equal_type t1 (find_type_tequals t2 tequals)) -> List (find_type_tequals t2 tequals)
+          |_ -> raise OperateTypeError
         end
       |Tuple tlist,t1 -> Tuple ((t n2)::tlist)
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |Sub ->
     begin
@@ -1215,7 +1273,7 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |Int,Double -> Double
       |Double,Double -> Double
       |Double,Int -> Double
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |Mul ->
     begin
@@ -1224,7 +1282,7 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |Int,Double -> Double
       |Double,Double -> Double
       |Double,Int -> Double
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |Div ->
     begin
@@ -1233,13 +1291,13 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |Int,Double -> Double
       |Double,Double -> Double
       |Double,Int -> Double
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |Mod ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
       |Int,Int -> Int
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |Lt ->
     begin
@@ -1248,7 +1306,7 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |Int,Double -> Bool
       |Double,Double -> Bool
       |Double,Int -> Bool
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |LtEq ->
     begin
@@ -1257,7 +1315,7 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |Int,Double -> Bool
       |Double,Double -> Bool
       |Double,Int -> Bool
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |Gt ->
     begin
@@ -1266,7 +1324,7 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |Int,Double -> Bool
       |Double,Double -> Bool
       |Double,Int -> Bool
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |GtEq ->
     begin
@@ -1275,7 +1333,7 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |Int,Double -> Bool
       |Double,Double -> Bool
       |Double,Int -> Bool
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |CEq ->
     begin
@@ -1285,19 +1343,19 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |Double,Double -> Bool
       |Double,Int -> Bool
       |String,String -> Bool
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |And ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
       |Bool,Bool -> Bool
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |Or ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
       |Bool,Bool -> Bool
-      |_ -> raise Error
+      |_ -> raise OperateTypeError
     end
   |Sub2 ->
     begin
@@ -1305,15 +1363,15 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |String,String -> String
       |String,Int -> String
       |String,Double -> String
-      |List t1,List t2 when (equal_type t1 (find_type_tequals t2 tequals)) -> (t n1)
+      |List t1,List t2 when (equal_type t1 (find_type_tequals t2 tequals)) -> List (find_type_tequals t2 tequals)
       |List t1,t2 ->
         begin
           match t2 with
-          |List t3 when (equal_type t1 (List (find_type_tequals t3 tequals))) -> (t n1)
-          |Tuple tlist when (equal_type t1 (Tuple (tuple_ftt tlist tequals))) -> (t n1)
+          |List t3 when (equal_type t1 (List (find_type_tequals t3 tequals))) -> List (List (find_type_tequals t3 tequals))
+          |Tuple tlist when (equal_type t1 (Tuple (tuple_ftt tlist tequals))) -> List (Tuple (tuple_ftt tlist tequals))
                                
-          |_ when (equal_type t1 (find_type_tequals t2 tequals)) -> (t n1)
-          |_ -> raise Error1
+          |_ when (equal_type t1 (find_type_tequals t2 tequals)) -> List (find_type_tequals t2 tequals)
+          |_ -> raise OperateTypeError
         end
 
       |Tuple tlist,t -> Tuple (remove_list t tlist [])
@@ -1367,6 +1425,20 @@ and secondFor_tval (paraList:string list) (argList:Program.e list) (env:Program.
           match makeEnvMatch (Cons(Var(s1),Nil)) (t (n+1)) env1 tequals1 with
           |env2 -> secondFor_tval paraList1 argList1 env2 tenv1 tequals1 (n1+1)
         end
+    end
+  |_ -> raise Error
+
+and dict_tval (e:Program.e) :Program.t =
+  match expr_tval e [] [] [] 0 with
+  |(env1,tenv1,tequals1,n1) -> find_type_tequals (t 0) tequals1
+
+and secondForDict_tval (paraList:string list) (tlist:Program.t list) (env:Program.env) (tequals:Program.tequals) :Program.env =
+  match paraList,tlist with
+  |[],[] -> env
+  |s1::paraList1,t1::tlist1 ->
+    begin
+      match makeEnvMatch (Var(s1)) t1 env tequals with
+      |env1 -> secondForDict_tval paraList1 tlist1 env1 tequals
     end
   |_ -> raise Error
 ;;
