@@ -24,6 +24,8 @@
   let inIndent = ref true
            
   let record = ref [0]
+
+  let pp_record fmt rcd = Format.printf "[%a]" (pp_list "" "," pp_int) rcd
              
   let pushRecord n = record := n::!record
                    
@@ -58,7 +60,7 @@
 
   let rec popRecord toks n record =
     match record with
-    | m::record1 when n < m -> popRecord (NEWLINE::DEDENT::toks) n record1
+    | m::record1 when n < m -> popRecord (DEDENT::NEWLINE::toks) n record1
     | m::_ when n = m -> (toks,record)
     | _ -> failwith ""
 
@@ -78,7 +80,7 @@
        let (dedents,_) = popRecord [] 0 !record in
        record := [0];
        addMemo "NEWLINE";
-       List.iter (fun _ -> addMemo "NEWLINE"; addMemo "DEDENT") dedents;
+       List.iter (function NEWLINE -> addMemo "NEWLINE" | DEDENT -> addMemo "DEDENT" | _ -> failwith "") dedents;
        raise (Issue (NEWLINE::dedents))
 
   let doEof lexbuf =
@@ -89,7 +91,7 @@
        let (dedents,_) = popRecord [] 0 !record in
        record := [0];
        addMemo "NEWLINE";
-       List.iter (fun _ -> addMemo "DEDENT") dedents;
+       List.iter (function NEWLINE -> addMemo "NEWLINE" | DEDENT -> addMemo "DEDENT" | _ -> failwith "") dedents;
        addMemo "NEWLINE EOF";
        raise (Issue (NEWLINE::dedents@[NEWLINE;EOF]))
        
@@ -108,7 +110,7 @@
          inIndent := false;
          let (dedents,newRecord) = popRecord [] !pos !record in
          record := newRecord;
-         List.iter (fun _ -> addMemo "DEDENT") dedents;
+         List.iter (function NEWLINE -> addMemo "NEWLINE" | DEDENT -> addMemo "DEDENT" | _ -> failwith "") dedents;
          raise (if dedents = [] then Exit else Issue(dedents))
       | _,_,_ -> raise (ParseError "Indent mismatch")
 
@@ -145,6 +147,7 @@ rule tokens = parse
   | "fordict" { addMemo "FORDICT"; [FORDICT] }
   | "if"      { addMemo "IF"; [IF]  }
   | "else"    { addMemo "ELSE"; [ELSE] }
+  | "pass"    { addMemo "PASS"; [PASS] } 
   | "return"  { addMemo "RETURN"; [RETURN] }
   | "struct"  { addMemo "STRUCT"; [STRUCT] }  
   | "fun"     { addMemo "FUN"; [FUN] }

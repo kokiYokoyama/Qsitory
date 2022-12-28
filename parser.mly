@@ -39,6 +39,7 @@
 %token FORDICT  // "fordict"
 %token IF       // "if"
 %token ELSE     // "else"
+%token PASS     // "pass" 
 %token FUN      // "fun"
 %token DEF      // "def"
 %token MATCH    // "match"
@@ -144,7 +145,7 @@ qtype:
   | t1 = qtype; AST; t2 = qtype { tMergeTuple t1 t2 }
 /// Struct types
   | STRUCT; tName = IDENT1 { P.T tName }    
-  | STRUCT; tName = IDENT1; LPAREN; RPAREN; COMMA; ee = py_suite
+  | STRUCT; tName = IDENT1; LPAREN; RPAREN; COLON; ee = py_suite
       { let mkEnv1 e =
          match e with
          | P.Declrt1(tp,x,_) -> (x,tp,None)
@@ -248,8 +249,8 @@ patexp:
   | tp = qtype; COLON; x = IDENT0; EQ; q = patexp { packExp @@ P.Declrt1(tp,x,unpackExp q) }
   | tp = qtype; COLON; x = IDENT0                 { packExp @@ P.Declrt2(tp,x) }
 /// If-expression ## if e : block (else if e: block )* | (else : block)? )
-  | IF; q = patexp COLON; eeThen = py_suite; ELSE; COLON; eeElse = py_suite
-       { packExp @@ P.If (unpackExp q, P.Block eeThen, P.Block eeElse) }
+  | IF; q = patexp; COLON; eeThen = py_suite; nonempty_list(NEWLINE); ELSE; COLON; eeElse = py_suite
+        { packExp @@ P.If (unpackExp q, P.Block eeThen, P.Block eeElse) }
 /// While-expression
   | WHILE; qCond = patexp; COLON; eeBody = py_suite
        { packExp @@ P.While(unpackExp qCond, P.Block eeBody) }
@@ -259,6 +260,11 @@ patexp:
 /// Fordict-expression ## fordict x,y,z in e : block
   | FORDICT; ss = separated_list(COMMA,IDENT0); IN; q = patexp; COLON; eeBody = py_suite
        { packExp @@ P.For_dict (ss, unpackExp q, P.Block eeBody) }
+/// Struct expression
+  | STRUCT; sName = IDENT1; COLON; eeBody = py_suite
+      { packExp @@ P.Dstruct (sName, P.Block eeBody) }
+/// Pass
+  | PASS { packExp @@ P.Block [] }
 ;
 
 /// block (Python-style, See: https://docs.python.org/ja/3/reference/compound_stmts.html)
@@ -269,7 +275,7 @@ py_statement:
   | ee = py_stmt_list; nonempty_list(NEWLINE) { ee }
 ;
 py_suite:
-  | ee = py_stmt_list; option(NEWLINE) { ee }
+  | ee = py_stmt_list; { ee }
   | NEWLINE; INDENT; eee = nonempty_list(py_statement); DEDENT { List.flatten eee }
   | NEWLINE; INDENT; NEWLINE; DEDENT { [] }
 ;
