@@ -872,12 +872,21 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
       match elist with
       |e::elist1 ->
         begin
-          match expr_tval e env tenv (((t n),(t (n+1)))::tequals) (n+1) with
+          match expr_tval e env tenv tequals (n+1) with
           |(env1,tenv1,tequals1,n1) ->
             begin
               match elist1 with
-              |[] -> (env1,tenv1,tequals1,n1)
-              |_ -> secondBlock_tval elist1 env1 tenv1 tequals1 n1
+              |[] ->
+                begin
+                  try
+                    begin
+                      match find_type env1 "rv" with
+                      |t1 -> (env1,tenv1,(((t n),t1)::tequals1),n1)
+                    end
+                  with
+                  |NoValueError -> (env1,tenv1,(((t n),t (n+1))::tequals1),n1)
+                end
+              |_ -> secondBlock_tval elist1 env1 tenv1 tequals1 n1 n
             end
         end
       |_ -> raise Error
@@ -1015,6 +1024,15 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
                 end
             end
           |_ -> raise Error
+        end
+    end
+  |Return e ->
+    begin
+      match expr_tval e env tenv (((t n),Unit)::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match find_type_tequals (t (n+1)) tequals1 with
+          |t1 -> ((("rv",t1,None)::env1),tenv1,tequals1,n1)
         end
     end
        
@@ -1436,13 +1454,26 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
       |_ -> raise Error
     end
 
-and secondBlock_tval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
+and secondBlock_tval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) (n0:int) :Program.tvalResult =
   match elist with
-  |e::[] -> expr_tval e env tenv tequals (n+1)
+  |e::[] ->
+    begin
+      match expr_tval e env tenv tequals (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          try
+            begin
+              match find_type env1 "rv" with
+              |t1 -> (env1,tenv1,(((t n0),t1)::tequals1),n1)
+            end
+          with
+          |NoValueError -> (env1,tenv1,(((t n0),t (n+1))::tequals1),n1)
+        end
+    end
   |e::elist1 ->
     begin
       match expr_tval e env tenv tequals (n+1) with
-      |(env1,tenv1,tequals1,n1) -> secondBlock_tval elist1 env1 tenv1 tequals1 n1
+      |(env1,tenv1,tequals1,n1) -> secondBlock_tval elist1 env1 tenv1 tequals1 n1 n0
     end
   |_ -> raise Error
 
