@@ -867,30 +867,6 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
           |(env2,tenv2,tequals2,n2) -> expr_tval e3 env2 tenv2 (((t (n2+1)),(t n))::tequals2) (n2+1)
         end
     end
-  |Block(elist) ->
-    begin
-      match elist with
-      |e::elist1 ->
-        begin
-          match expr_tval e env tenv tequals (n+1) with
-          |(env1,tenv1,tequals1,n1) ->
-            begin
-              match elist1 with
-              |[] ->
-                begin
-                  try
-                    begin
-                      match find_type env1 "rv" with
-                      |t1 -> (env1,tenv1,(((t n),t1)::tequals1),n1)
-                    end
-                  with
-                  |NoValueError -> (env1,tenv1,(((t n),t (n+1))::tequals1),n1)
-                end
-              |_ -> secondBlock_tval elist1 env1 tenv1 tequals1 n1 n
-            end
-        end
-      |_ -> raise Error
-    end
   |Match(e,patlist) ->
     begin
       match expr_tval e env tenv tequals (n+1) with
@@ -1035,6 +1011,68 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
           |t1 -> ((("rv",t1,None)::env1),tenv1,tequals1,n1)
         end
     end
+  |Dstruct(s,e) ->
+    begin
+      match makeStructTenv e with
+      |structData -> env,(((T s),Struct(structData))::tenv),(((t n),Unit)::tequals),n
+    end
+  |MakeIns(s) -> (env,tenv,(((t n),(T s))::tequals),n)
+  |UseIns1(e1,s) ->
+    begin
+      match expr_tval e1 env tenv tequals (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match find_structEnv tenv1 tequals1 (n+1) with
+          |structEnv ->
+            begin
+              match find_type structEnv s with
+              |t1 -> (env1,tenv1,(((t n),t1)::tequals1),n1)
+            end
+        end
+    end
+  |UseIns2(e1,e2) ->
+    begin
+      match expr_tval e1 env tenv (((t (n+1)),String)::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match expr_tval e2 env1 tenv1 (((t (n1+1)),String)::tequals1) (n1+1) with
+          |(env2,tenv2,tequals2,n2) ->
+            begin
+              match expr_eval e1 env tenv with
+              |(String(s1),env3,tenv3) ->
+                begin
+                  match expr_eval e2 env3 tenv3 with
+                  |(String(s2),env4,tenv4) -> expr_tval (UseIns1(Var(s1),s2)) env2 tenv2 (((t n),(t n2))::tequals2) n2
+                  |_ -> raise Error
+                end
+              |_ -> raise Error
+            end
+        end
+    end
+   |Block(elist) ->
+    begin
+      match elist with
+      |e::elist1 ->
+        begin
+          match expr_tval e env tenv tequals (n+1) with
+          |(env1,tenv1,tequals1,n1) ->
+            begin
+              match elist1 with
+              |[] ->
+                begin
+                  try
+                    begin
+                      match find_type env1 "rv" with
+                      |t1 -> (env1,tenv1,(((t n),t1)::tequals1),n1)
+                    end
+                  with
+                  |NoValueError -> (env1,tenv1,(((t n),t (n+1))::tequals1),n1)
+                end
+              |_ -> secondBlock_tval elist1 env1 tenv1 tequals1 n1 n
+            end
+        end
+      |_ -> raise Error
+    end
        
             
 
@@ -1111,6 +1149,15 @@ and find_type (env:Program.env) (s:string) :Program.t =
   |(s1,t,None)::env1 -> if String.equal s s1 then t else find_type env1 s
   |[] -> raise NoValueError
   |_ -> raise Error
+
+and find_structEnv (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.env =
+  match find_type_tequals (t n) tequals with
+  |t1 ->
+    begin
+      match List.assoc t1 tenv with
+      |Struct(structEnv) -> structEnv
+      |_ -> raise Error
+    end
 
 and find_type_tequals (t:Program.t) (tequals:Program.tequals) :Program.t =
   match find_type_tequals2 t tequals with
@@ -1530,6 +1577,10 @@ and secondForDict_tval (paraList:string list) (tlist:Program.t list) (env:Progra
       |env1 -> secondForDict_tval paraList1 tlist1 env1 tequals
     end
   |_ -> raise Error
+
+and makeStructTenv (e:Program.e) :Program.env =
+  match expr_eval e [] [] with
+  |(v,env,tenv) -> env
 ;;
 
 (* Unif------------------------------------------------------------------- *)
