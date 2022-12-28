@@ -13,6 +13,7 @@ module Program = struct
   type t = T of string
          | Int | Double | Bool | String | Any | Unit
          | List of t | Tuple of t list
+         | FunClos of env * string * e
          | Fun of t * t
          | Struct of env
   (* value *)       
@@ -122,6 +123,7 @@ and print_type (t:Program.t) =
   |Fun(t1,t2) -> Format.printf "%a->%a" (fun _ ->print_type) t1 (fun _ ->print_type) t2
   |Struct list -> Format.printf "%a" ( fun _ -> type_struct_print ) list
   |Any -> Format.printf "Any"
+  |FunClos(env,s,e) -> Format.printf "FunClos(%a,%s,%a)" (fun _ -> print_env) env s (fun _ -> print_expr) e
 
 and type_tuple_print list =
   match list with

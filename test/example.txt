@@ -80,38 +80,51 @@ def function1 (x,y) :
 z=function1 (2) (3)
 */
 
+//再帰関数の使用
 /*
+def function1 (x) :
+   if x<10 :
+     function1 (x) (5)
+   else :
+     x
+
+z=function1 (2) (3)
+*/
+
 //定義後の関数を使用
 def function0 (x) :
    x
 
 def function1 (x,y) :
    z=x+y
-   function0 z
+   function0 (z)
 
-z=(function1 2) 3
-*/
+z=function1(2) (3)
 
-/*
 //引数が複数の関数の使用
+/*
 def function1 (x,y) :
    z=x+y
    return (x,y,z)
 
-(x,y,z)=(function1 2) 3
+(x,y,z)=function1(2) (3)
 */
 
+
+//引数が一つの関数の使用
 /*
-引数が一つの関数の使用
 def function0 (x) :
    x
 
-function0 1
+function0(1)
 */
 
+
+/*
 i=0
 while i<5:
    i+=1
+*/
 
 /*
 z=[]
@@ -127,7 +140,7 @@ z=[]
 fordict k,n in [("key1",1),("key2",2)]:
    z+=k
    
-z+="string"
+//z+="string"
 */
 
 /*

@@ -10,7 +10,6 @@ exception NoMatchPatternError
 exception NotMatchExpressionError
 exception OperateTypeError
 open Syntax
-open Pprint
 (* Expr_Eval-------------------------------------------------------------- *)
 
 let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.evalResult  =
@@ -240,7 +239,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
               match expr_eval e2 env1 tenv1 with
               |(v2,env2,tenv2) ->
                 begin
-                  match expr_eval e0 ((s,Any,(Some v2))::(env0@(find_fun env []))) tenv2 with
+                  match expr_eval e0 ((s,Any,(Some v2))::(env0@(find_fun env2 []))) tenv2 with
                   |(v3,env3,tenv3) ->
                     begin
                       try
@@ -310,7 +309,7 @@ and find (env:Program.env) (s:string) :Program.v =
   match env with
   |(s1,t,Some (v))::env1 -> if String.equal s s1 then v else find env1 s
   |[] -> raise NoValueError
-  |_ -> raise Error
+  |_ -> raise NoValueError
 
 and find_fun (env:Program.env) (fenv:Program.env) :Program.env =
   match env with
@@ -318,6 +317,7 @@ and find_fun (env:Program.env) (fenv:Program.env) :Program.env =
     begin
       match t with
       |Fun(t1,t2) -> find_fun env1 ((s,t,v)::fenv)
+      |FunClos(env0,s0,e0) -> find_fun env1 ((s,t,v)::fenv)
       |_ -> find_fun env1 fenv
     end
   |[] -> fenv
@@ -780,7 +780,7 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
           match expr_tval e env tenv ((t (n+2),Any)::((t n),Unit)::tequals) (n+1) with
           |(env1,tenv1,tequals1,n1) ->
             begin
-              match makeEnvFormu p (n+1) env1 with
+              match makeEnvFormu p (n+1) env1 tequals1 with
               |(env2,n2) -> (env2,tenv1,tequals1,n1)
             end
         end
@@ -789,7 +789,7 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
           match expr_tval e env tenv (((t n),Unit)::tequals) (n+1) with
           |(env1,tenv1,tequals1,n1) ->
             begin
-              match makeEnvFormu p (n+1) env1 with
+              match makeEnvFormu p (n+1) env1 tequals1 with
               |(env2,n2) -> (env2,tenv1,tequals1,n1)
             end
         end
@@ -870,11 +870,15 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
   |Block(elist) ->
     begin
       match elist with
-      |e::[] -> expr_tval e env tenv (((t n),(t (n+1)))::tequals) (n+1)
       |e::elist1 ->
         begin
           match expr_tval e env tenv (((t n),(t (n+1)))::tequals) (n+1) with
-          |(env1,tenv1,tequals1,n1) -> secondBlock_tval elist1 env1 tenv1 tequals1 n1
+          |(env1,tenv1,tequals1,n1) ->
+            begin
+              match elist1 with
+              |[] -> (env1,tenv1,tequals1,n1)
+              |_ -> secondBlock_tval elist1 env1 tenv1 tequals1 n1
+            end
         end
       |_ -> raise Error
     end
@@ -951,7 +955,7 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
                           begin
                             match e2 with
                             |Nil ->(env,tenv,tequals2,n2)
-                            |_ -> expr_tval (For_dict(paraList,e2,e)) env3 tenv2 tequals2 n2
+                            |_ -> expr_tval (For_dict(paraList,e2,e)) env3 tenv2 tequals2 (n2+1)
                           end
                       end
                 end
@@ -989,6 +993,29 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
     begin
       match expr_tval e1 env tenv (((t (n+1)),Bool)::((t n),Unit)::tequals) (n+1) with
       |(env1,tenv1,tequals1,n1) -> expr_tval e2 env1 tenv1 tequals1 (n1+1)
+    end
+  |Dfun(s,e) -> (env,tenv,(((t n),(FunClos(env,s,e)))::tequals),n)
+  |Fun(e1,e2) ->
+    begin
+      match expr_tval e1 env tenv tequals (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        begin
+          match find_type_tequals (t (n1)) tequals1 with
+          |FunClos(env0,s,e0) ->
+            begin
+              match expr_tval e2 env1 tenv1 tequals1 (n1+1) with
+              |(env2,tenv2,tequals2,n2) ->
+                begin
+                  match makeEnvMatch (Var(s)) (t (n1+1)) env0 tequals2 with
+                  |env3 -> 
+                    begin
+                      match expr_tval e0 (env3@(find_fun env2 [])) tenv2 (((t n),(t (n2+1)))::tequals2) (n2+1) with
+                      |(env4,tenv3,tequals3,n3) -> (env,tenv,tequals3,n3)
+                    end
+                end
+            end
+          |_ -> raise Error
+        end
     end
        
             
@@ -1136,23 +1163,23 @@ and pat_tuple_tval (plist:Program.p list) (env:Program.env) (tenv:Program.tenv) 
     |_ -> raise Error
   end
 
-and makeEnvFormu (p:Program.p) (n:int) (env:Program.env) :(Program.env * int) =
+and makeEnvFormu (p:Program.p) (n:int) (env:Program.env) (tequals:Program.tequals) :(Program.env * int) =
   (* Format.printf "%i" n; *)
   match p with
-  |Var s -> (((s,(t n),None)::env),n)
+  |Var s -> (((s,(find_type_tequals (t n) tequals),None)::(find_remove env s [])),n)
   |Cons(p1,p2) ->
     begin
-      match makeEnvFormu p1 (n+1) env with
-      |(env1,n1) -> makeEnvFormu p2 (n1+1) env1
+      match makeEnvFormu p1 (n+1) env tequals with
+      |(env1,n1) -> makeEnvFormu p2 (n1+1) env1 tequals
     end
   |Tuple plist ->
     begin
       match plist with
-      |p1::[] -> makeEnvFormu p1 (n+1) env 
+      |p1::[] -> makeEnvFormu p1 (n+1) env tequals 
       |p1::plist1 ->
         begin
-          match makeEnvFormu p1 (n+1) env  with
-          |(env1,n1) -> makeEnvFormu (Tuple plist1) (n1+1) env1
+          match makeEnvFormu p1 (n+1) env tequals  with
+          |(env1,n1) -> makeEnvFormu (Tuple plist1) (n1+1) env1 tequals
         end
       |_ -> raise Error
     end
@@ -1246,9 +1273,11 @@ and aOperateType (e:Program.e) (n1:int) (n2:int) (aop:Program.aop) (env:Program.
 
 and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Program.t =
   match op with
-  |Add ->
+  |Add -> (* print_type (find_type_tequals (t n1) tequals);print_type (find_type_tequals (t n2) tequals); *)
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> t
+      |t,Any -> t
       |Int,Int -> Int
       |Int,Double -> Double
       |Int,String -> String
@@ -1274,6 +1303,8 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
   |Sub ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> t
+      |t,Any -> t
       |Int,Int -> Int
       |Int,Double -> Double
       |Double,Double -> Double
@@ -1283,6 +1314,8 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
   |Mul ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> t
+      |t,Any -> t
       |Int,Int -> Int
       |Int,Double -> Double
       |Double,Double -> Double
@@ -1292,6 +1325,8 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
   |Div ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> t
+      |t,Any -> t
       |Int,Int -> Int
       |Int,Double -> Double
       |Double,Double -> Double
@@ -1301,12 +1336,16 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
   |Mod ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> t
+      |t,Any -> t
       |Int,Int -> Int
       |_ -> raise OperateTypeError
     end
-  |Lt ->
+  |Lt -> (* print_type (find_type_tequals (t n1) tequals);print_type (find_type_tequals (t n2) tequals); *) 
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> Bool
+      |t,Any -> Bool
       |Int,Int -> Bool
       |Int,Double -> Bool
       |Double,Double -> Bool
@@ -1316,6 +1355,8 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
   |LtEq ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> Bool
+      |t,Any -> Bool
       |Int,Int -> Bool
       |Int,Double -> Bool
       |Double,Double -> Bool
@@ -1325,6 +1366,8 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
   |Gt ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> Bool
+      |t,Any -> Bool
       |Int,Int -> Bool
       |Int,Double -> Bool
       |Double,Double -> Bool
@@ -1334,6 +1377,8 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
   |GtEq ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> Bool
+      |t,Any -> Bool
       |Int,Int -> Bool
       |Int,Double -> Bool
       |Double,Double -> Bool
@@ -1343,6 +1388,8 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
   |CEq ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> Bool
+      |t,Any -> Bool
       |Int,Int -> Bool
       |Int,Double -> Bool
       |Double,Double -> Bool
@@ -1353,18 +1400,24 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
   |And ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> Bool
+      |t,Any -> Bool
       |Bool,Bool -> Bool
       |_ -> raise OperateTypeError
     end
   |Or ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> Bool
+      |t,Any -> Bool
       |Bool,Bool -> Bool
       |_ -> raise OperateTypeError
     end
   |Sub2 ->
     begin
       match (find_type_tequals (t n1) tequals),(find_type_tequals (t n2) tequals) with
+      |Any,t -> t
+      |t,Any -> t
       |String,String -> String
       |String,Int -> String
       |String,Double -> String
