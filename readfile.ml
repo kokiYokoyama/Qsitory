@@ -45,7 +45,7 @@ let parse str =
   with
   | Parsing.Parse_error ->
      doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
-     F.printf "@[\n\nParse error: %S@." (Lexing.lexeme lexbuf);
+     F.printf "@[\n\nParse error: \"%s\"@." (Lexing.lexeme lexbuf);
      exit 0
   | ParseError mes ->
      doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
@@ -53,7 +53,7 @@ let parse str =
      exit 0
   | _ ->
      doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
-     F.printf "@[\n\nUnknown Parse error: %S@." (Lexing.lexeme lexbuf);
+     F.printf "@[\n\nUnknown Parse error: \"%s\"@." (Lexing.lexeme lexbuf);
      exit 0
            
 (* envのT(s)を具体的なtypeに直す *)

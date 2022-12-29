@@ -32,6 +32,7 @@ and pp_aop fmt (aop:Program.aop) =
 and pp_type fmt (t:Program.t) =
   match t with
   | T s -> pp_string fmt s
+  | MT s -> pp_string fmt s
   | Int -> pp_string fmt "Int"
   | Unit -> pp_string fmt "Unit"         
   | Double -> pp_string fmt "Double"      

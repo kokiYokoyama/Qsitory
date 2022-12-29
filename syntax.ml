@@ -10,7 +10,7 @@ module Program = struct
   type aop = Add | Sub | Mul | Div | Eq
 
   (* type *)
-  type t = T of string
+  type t = T of string | MT of string
          | Int | Double | Bool | String | Any | Unit
          | List of t | Tuple of t list
          | FunClos of env * string * e
@@ -113,6 +113,7 @@ and print_aop (aop:Program.aop) =
 and print_type (t:Program.t) =
   match t with
   |T s -> Format.printf "%s" s
+  |MT s -> Format.printf "%s" s
   |Unit -> Format.printf "Unit"
   |Int -> Format.printf "Int"
   |Double -> Format.printf "Double"      
@@ -121,7 +122,7 @@ and print_type (t:Program.t) =
   |List t1 -> Format.printf "List(%a)" (fun _ -> print_type) t1
   |Tuple list -> Format.printf "Tuple(%a)" (fun _ -> type_tuple_print) list
   |Fun(t1,t2) -> Format.printf "%a->%a" (fun _ ->print_type) t1 (fun _ ->print_type) t2
-  |Struct list -> Format.printf "%a" ( fun _ -> type_struct_print ) list
+  |Struct list -> Format.printf "[%a]" ( fun _ -> type_struct_print ) list
   |Any -> Format.printf "Any"
   |FunClos(env,s,e) -> Format.printf "FunClos(%a,%s,%a)" (fun _ -> print_env) env s (fun _ -> print_expr) e
 
@@ -160,7 +161,9 @@ and value_tuple_print list =
 and value_struct_print list =
   match list with
   |(s,t,Some v)::[] -> Format.printf "(%s,%a,%a)" s (fun _ -> print_type) t (fun _ -> print_value) v
+  |(s,t,None)::[] -> Format.printf "(%s,%a,None)" s (fun _ -> print_type) t
   |(s,t,Some v)::list1 -> Format.printf "(%s,%a,%a),%a" s (fun _ -> print_type) t (fun _ -> print_value) v (fun _ -> value_struct_print) list1
+  |(s,t,None)::list1 -> Format.printf "(%s,%a,None),%a" s (fun _ -> print_type) t (fun _ -> value_struct_print) list1
   | _ -> raise Error
 
 (* pattern *)
