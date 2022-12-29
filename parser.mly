@@ -93,13 +93,13 @@
 %token EOF 
             
 // 結合力(優先度が低い順)
-%left DOTDOT            
 %left AND OR
 %nonassoc NOT         
 %left EQ LT LE GT GE PLUSEQ MINUSEQ MULEQ DIVEQ EQEQ NEQ
 %left PLUS MINUS
 %right ARROW
 %left AST
+%left DOTDOT
 %nonassoc LPAREN
 
 %start main
