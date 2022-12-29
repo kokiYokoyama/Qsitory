@@ -219,7 +219,8 @@ patexp:
   | q1 = patexp; DOTMINUS;   q2 = patexp { packExp @@ P.Sub(unpackExp q1,unpackPat q2) }
   | q1 = patexp; DOTMINUSEQ; q2 = patexp { packExp @@ P.SubFormu(unpackExp q1,unpackPat q2) }
 /// Structs ## aa.fld / "aa".."fld" /  StructName()
-  | aa = IDENT0; DOT; sFld=IDENT0        { packExp @@ P.UseIns1(eVar aa,sFld) }
+  | aa = IDENT0; ssFld = nonempty_list(DOT; sFld=IDENT0 {sFld})
+         { packExp @@ (List.fold_left (fun e fld -> P.UseIns1(e,fld)) (eVar aa) ssFld) }
   | qStr = patexp; DOTDOT; qFld = patexp { packExp @@ P.UseIns2(unpackExp qStr, unpackExp qFld) }
   | sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }
 /// Functions:
