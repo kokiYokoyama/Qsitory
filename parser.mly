@@ -212,7 +212,7 @@ patexp:
   | q1 = patexp; MULEQ;   q2 = patexp { packExp @@ P.AOperate(P.Mul,unpackExp q1,unpackExp q2) }
   | q1 = patexp; DIVEQ;   q2 = patexp { packExp @@ P.AOperate(P.Div,unpackExp q1,unpackExp q2) }
 /// Assignments: p = e / aa.fld = e / "aa".."fld" = e
-  | q0 = patexp; EQ; q = patexp
+  | q0 = patexp; EQ; q = patexp 
         { let e = unpackExp q in
           match q0 with
           | (Some p0,_) -> packExp @@ P.Formu (p0,e)
