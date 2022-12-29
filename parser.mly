@@ -136,13 +136,7 @@ qtype:
   | TpSTRING { tString }
   | TpBOOL   { tBool }
   | TpUNIT   { tUnit }
-  | tname = IDENT0
-              {
-                match tname.[0] with
-                | '_' | '$' | '#' ->
-                   raise (ParseError ("Unexpected type name: " ^ tname ^ "\nType name cannot start from non-alphabetical symbols"))
-                | _ -> P.MT (String.capitalize_ascii tname)
-              }
+  | tname = IDENT1 { P.MT tname }
   | LPAREN; t = qtype; RPAREN { t }
 /// List types
   | t = qtype; TpLIST { P.List t }
@@ -157,7 +151,9 @@ qtype:
          match e with
          | P.Declrt1(tp,x,_) -> (x,tp,None)
          | P.Declrt2(tp,x)   -> (x,tp,None)
-         | _ -> raise (ParseError "Unexpected struct definition")
+         | _ ->
+            let mes = "Non assignment-form cannot appear in a struct body" in
+            raise (ParseError ("Unexpected struct definition: " ^ mes))
         in
         tStruct (List.map mkEnv1 ee)
       };
@@ -199,7 +195,7 @@ patexp:
          let pOpt = try Some (pTuple (List.fold_right (fun q pp -> (unpackPat q)::pp) qq [])) with _ -> None in 
          let eOpt = try Some (eTuple (List.fold_right (fun q ee -> (unpackExp q)::ee) qq [])) with _ -> None in 
          (pOpt,eOpt)
-       }           
+       }
 /// Binop
   | q1 = patexp; PLUS;  q2 = patexp { packExp @@ P.Operate(P.Add,unpackExp q1,unpackExp q2) }
   | q1 = patexp; MINUS; q2 = patexp { packExp @@ P.Operate(P.Sub,unpackExp q1,unpackExp q2) }
@@ -253,8 +249,12 @@ patexp:
   | MATCH; q = patexp; COLON; cc = match_clauses_suite
        { packExp @@ P.Match(unpackExp q,cc) }
 /// Declaration / Declaration+Initialization
-  | tp = qtype; COLON; x = IDENT0; EQ; q = patexp { packExp @@ P.Declrt1(tp,x,unpackExp q) }
-  | tp = qtype; COLON; x = IDENT0                 { packExp @@ P.Declrt2(tp,x) }
+  | tp = qtype; COLON; x = IDENT0; qOpt = option(EQ; q = patexp {q})
+          {
+            match qOpt with
+            | None -> packExp @@ P.Declrt2(tp,x)
+            | Some q -> packExp @@ P.Declrt1(tp,x,unpackExp q)
+          }
 /// If-expression ## if e : block (else if e: block )* | (else : block)? )
   | IF; q = patexp; COLON; eeThen = py_suite; nonempty_list(NEWLINE); ELSE; COLON; eeElse = py_suite
         { packExp @@ P.If (unpackExp q, P.Block eeThen, P.Block eeElse) }
