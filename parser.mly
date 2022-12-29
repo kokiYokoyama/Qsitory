@@ -136,6 +136,13 @@ qtype:
   | TpSTRING { tString }
   | TpBOOL   { tBool }
   | TpUNIT   { tUnit }
+  | tname = IDENT0
+              {
+                match tname.[0] with
+                | '_' | '$' | '#' ->
+                   raise (ParseError ("Unexpected type name: " ^ tname ^ "\nType name cannot start from non-alphabetical symbols"))
+                | _ -> P.MT (String.capitalize_ascii tname)
+              }
   | LPAREN; t = qtype; RPAREN { t }
 /// List types
   | t = qtype; TpLIST { P.List t }
