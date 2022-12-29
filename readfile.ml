@@ -45,15 +45,15 @@ let parse str =
   with
   | Parsing.Parse_error ->
      doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
-     F.printf "@[\n\nParse error: \"%s\"@." (Lexing.lexeme lexbuf);
+     F.printf "@[\n\nParse error: %S@." (Lexing.lexeme lexbuf);
      exit 0
   | ParseError mes ->
      doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
-     F.printf "@[\n\nParse error: %s@." mes;
+     F.printf "@[\n\nParse error: %S@." mes;
      exit 0
   | _ ->
      doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
-     F.printf "@[\n\nUnknown Parse error: \"%s\"@." (Lexing.lexeme lexbuf);
+     F.printf "@[\n\nUnknown Parse error: %S@." (Lexing.lexeme lexbuf);
      exit 0
            
 (* envのT(s)を具体的なtypeに直す *)
@@ -163,4 +163,7 @@ let interpreter filename =
   |Error6 -> print_endline "Exception: Error6"; exit 0
   |OperateTypeError -> print_endline "Exception: OperateTypeError"; exit 0
   | _ -> print_endline "Exception: Eval error"; exit 0
-                                  
+;;
+
+
+                                                  
