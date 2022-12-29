@@ -265,7 +265,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
   |UseIns1(e,s) ->
     begin
       match expr_eval e env tenv with
-      |(Struct(s,structEnv),env1,tenv1) -> ((find structEnv s),env1,tenv1)
+      |(Struct(s1,structEnv),env1,tenv1) -> ((find structEnv s),env1,tenv1)
       |_ -> raise Error
     end
   |UseIns2(e1,e2) ->
@@ -305,7 +305,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
    
 (* eval's function!------------------------------------------------------- *)
 
-and find (env:Program.env) (s:string) :Program.v =
+and find (env:Program.env) (s:string) :Program.v = 
   match env with
   |(s1,t,Some (v))::env1 -> if String.equal s s1 then v else find env1 s
   |[] -> raise NoValueError
@@ -409,7 +409,7 @@ and updateFids (ins_n:string) (fids:string list) (v:Program.v) (env:Program.env)
   |Struct(st_n,field) ->
     begin
       match fids with
-      |fi_n::[] -> (ins_n,(T st_n),Some (Struct(st_n,((fi_n,Any,Some v)::(find_remove field fi_n [] )))))::(find_remove env ins_n [])
+      |fi_n::[] -> (ins_n,(T st_n),Some (Struct(st_n,((fi_n,(find_type field fi_n),Some v)::(find_remove field fi_n [] )))))::(find_remove env ins_n [])
       |fi_n::fids1 ->
         begin
           match updateFids fi_n fids1 v field with
@@ -722,7 +722,7 @@ and get_dict_item (paraList:string list) (tuple:Program.v) (env:Program.env) :Pr
   |_ -> raise Error
 
 and makeStructEnv (s:string) (tenv:Program.tenv) (flist:Program.env) :Program.env =
-  match List.assoc (T(s):Program.t) tenv  with
+  match List.assoc (MT(s):Program.t) tenv  with
   |Struct(list) -> findMyType tenv list flist
   |_ -> raise Error
 
@@ -740,8 +740,6 @@ and findMyType (tenv:Program.tenv) (list:Program.env) (flist:Program.env) =
     end                                            
   |[] -> flist
 
-;;
-
 (* Expr_Tval-------------------------------------------------------------- *)
 
 (* 一つの構文における
@@ -749,9 +747,9 @@ and findMyType (tenv:Program.tenv) (list:Program.env) (flist:Program.env) =
  * T1 -> t (tn+1)         
  * T2 -> t (tn+2) *)
 
-let t (tn:int) :Program.t = T ("T" ^ string_of_int(tn))
+and t (tn:int) :Program.t = T ("T" ^ string_of_int(tn))
 
-let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
+and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
   match e with
   |Int i -> (env,tenv,(((t n),Int)::tequals),n)
   |Double d -> (env,tenv,(((t n),Double)::tequals),n)
@@ -803,12 +801,12 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
           |UseIns1(e3,fi_n) ->
             begin
               match splitSF e1 [] with
-              |(ins_n,fids) -> ((updateFids_tval ins_n fids (n+1) env1),tenv1,tequals1,n1)
+              |(ins_n,fids) -> ((updateFids_tval ins_n fids (n+1) env1 tenv1),tenv1,tequals1,n1)
             end
           |UseIns2(e3,e4) ->
             begin
               match splitSF2 e1 [] env tenv with
-              |(ins_n,fids) -> ((updateFids_tval ins_n fids (n+1) env1),tenv1,tequals1,n1)
+              |(ins_n,fids) -> ((updateFids_tval ins_n fids (n+1) env1 tenv1),tenv1,tequals1,n1)
             end
           |_ -> raise Error
         end
@@ -1014,13 +1012,13 @@ let rec expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:P
   |Dstruct(s,e) ->
     begin
       match makeStructTenv e with
-      |structData -> env,(((T s),Struct(structData))::tenv),(((t n),Unit)::tequals),n
+      |structData -> env,(((MT s),Struct(structData))::tenv),(((t n),Unit)::tequals),n
     end
-  |MakeIns(s) -> (env,tenv,(((t n),(T s))::tequals),n)
+  |MakeIns(s) -> (env,tenv,(((t n),(MT s))::tequals),n)
   |UseIns1(e1,s) ->
     begin
       match expr_tval e1 env tenv tequals (n+1) with
-      |(env1,tenv1,tequals1,n1) ->
+      |(env1,tenv1,tequals1,n1) -> 
         begin
           match find_structEnv tenv1 tequals1 (n+1) with
           |structEnv ->
@@ -1146,9 +1144,8 @@ and equal_type_env (env1:Program.env) (env2:Program.env) :bool =
 
 and find_type (env:Program.env) (s:string) :Program.t =
   match env with
-  |(s1,t,None)::env1 -> if String.equal s s1 then t else find_type env1 s
+  |(s1,t,v)::env1 -> if String.equal s s1 then t else find_type env1 s
   |[] -> raise NoValueError
-  |_ -> raise Error
 
 and find_structEnv (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.env =
   match find_type_tequals (t n) tequals with
@@ -1306,21 +1303,41 @@ and makeEnvMatch2 (p:Program.p) (t:Program.t) (env:Program.env) :Program.env =
     end
   |_ -> env
           
-and updateFids_tval (ins_n:string) (fids:string list) (n:int) (env:Program.env) :Program.env =
-  match find env ins_n with
-  |Struct(st_n,field) ->
+(* and updateFids_tval (ins_n:string) (fids:string list) (n:int) (env:Program.env) :Program.env =
+ *   match find env ins_n with
+ *   |Struct(st_n,field) ->
+ *     begin
+ *       match fids with
+ *       |fi_n::[] -> (ins_n,(T st_n),Some (Struct(st_n,((fi_n,(t n),None)::(find_remove field fi_n [] )))))::(find_remove env ins_n [])
+ *       |fi_n::fids1 ->
+ *         begin
+ *           match updateFids_tval fi_n fids1 n field with
+ *           |field1 -> ((ins_n,(T st_n),Some (Struct(st_n,field1)))::(find_remove env ins_n []))
+ *         end
+ *       |_ -> raise Error
+ *     end
+ *   |_ -> raise Error *)
+
+and updateFids_tval (ins_n:string) (fids:string list) (n:int) (env:Program.env) (tenv:Program.tenv) :Program.env =
+  match find_type env ins_n with
+  |MT s ->
     begin
-      match fids with
-      |fi_n::[] -> (ins_n,(T st_n),Some (Struct(st_n,((fi_n,(t n),None)::(find_remove field fi_n [] )))))::(find_remove env ins_n [])
-      |fi_n::fids1 ->
+      match List.assoc ((MT(s)):Program.t) tenv with
+      |Struct(structEnv) ->
         begin
-          match updateFids_tval fi_n fids1 n field with
-          |field1 -> ((ins_n,(T st_n),Some (Struct(st_n,field1)))::(find_remove env ins_n []))
+          match fids with
+          |fi_n::[] -> (ins_n,(MT s),Some (Struct(s,((fi_n,(t n),None)::(find_remove structEnv fi_n [])))))::(find_remove env ins_n [])
+          |fi_n::fids1 ->
+            begin
+              match updateFids_tval fi_n fids1 n structEnv tenv with
+              |field1 -> ((ins_n,(MT s),Some (Struct(s,field1)))::(find_remove structEnv ins_n []))
+            end
+          |_ -> raise Error
         end
       |_ -> raise Error
     end
-  |_ -> raise Error
-
+  |_ ->raise Error
+        
 and aOperateType (e:Program.e) (n1:int) (n2:int) (aop:Program.aop) (env:Program.env) (tequals:Program.tequals) :Program.env =
   match e with
   |Var s ->
