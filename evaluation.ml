@@ -1040,7 +1040,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
               |(String(s1),env3,tenv3) ->
                 begin
                   match expr_eval e2 env3 tenv3 with
-                  |(String(s2),env4,tenv4) -> expr_tval (UseIns1(Var(s1),s2)) env2 tenv2 (((t n),(t n2))::tequals2) n2
+                  |(String(s2),env4,tenv4) ->  expr_tval (UseIns1(Var(s1),s2)) env2 tenv2 (((t n),(t n2))::tequals2) n2
                   |_ -> raise Error
                 end
               |_ -> raise Error
@@ -1326,7 +1326,7 @@ and updateFids_tval (ins_n:string) (fids:string list) (n:int) (env:Program.env) 
       |Struct(structEnv) ->
         begin
           match fids with
-          |fi_n::[] -> (ins_n,(MT s),Some (Struct(s,((fi_n,(t n),None)::(find_remove structEnv fi_n [])))))::(find_remove env ins_n [])
+          |fi_n::[] -> (ins_n,(MT s),Some (Struct(s,((fi_n,(find_type structEnv fi_n ),None)::(find_remove structEnv fi_n [])))))::(find_remove env ins_n [])
           |fi_n::fids1 ->
             begin
               match updateFids_tval fi_n fids1 n structEnv tenv with
