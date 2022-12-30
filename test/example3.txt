@@ -1,0 +1,13 @@
+//条件分岐
+
+month = 12
+
+match month :
+  |1 -> "date 31"
+  |3 -> "date 31"
+  |5 -> "date 31"
+  |7 -> "date 31"
+  |8 -> "date 31"
+  |10 -> "date 31"
+  |12 -> "date 31"
+  |_ -> "date 30"

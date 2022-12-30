@@ -1,0 +1,24 @@
+//繰り返し(Error)
+
+/*
+z=[]
+
+l1=[1,2,3]
+l2=[4,5,6]
+l3=[7,8,9]
+
+for a,b,c in l1,l2,l3:
+  z+=a+b+c
+*/
+
+t = [ ("a",21,0) , ("b",20,1) ,("c",25,0) ]
+
+for name,age,gender in t:
+   sum_age+=age
+   if gender == 0:
+      count_0 +=1
+   else:
+     count_1 +=1
+
+//"avarage" + (age/3)
+//"gender ratio" + count_0 + ":" + count_1

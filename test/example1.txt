@@ -1,0 +1,5 @@
+//変数とデータ型
+price = 15000
+number = 4
+payment = price/number
+price

@@ -1,0 +1,12 @@
+//再帰関数(Error)
+
+def euclid(x,y):
+   q = x / y
+   r = x mod y
+
+   if r == 0:
+      return y
+   else:
+      euclid(y,r)
+
+euclid(629,481)
