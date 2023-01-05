@@ -10,10 +10,9 @@ module Program = struct
   type aop = Add | Sub | Mul | Div | Eq
 
   (* type *)
-  type t = T of string | MT of string
+  type t = T of string | A of string | MT of string
          | Int | Double | Bool | String | Any | Unit
          | List of t | Tuple of t list
-         | FunClos of env * string * e
          | Fun of t * t
          | Struct of env
   (* value *)       
@@ -35,7 +34,7 @@ module Program = struct
         | Match of e * ( (p * e) list )
         | For of ( string list) * ( e list ) * e
         | For_dict of ( string list ) * e * e
-        | While of e * e | Dfun of string * e | Fun of e * e
+        | While of e * e | Dfun of t * string * e | Fun of e * e
         | Return of e | Dstruct of string * e | MakeIns of string
         | UseIns1 of e * string | UseIns2 of e * e
         | Block of e list
@@ -113,6 +112,7 @@ and print_aop (aop:Program.aop) =
 and print_type (t:Program.t) =
   match t with
   |T s -> Format.printf "%s" s
+  |A s -> Format.printf "%s" s
   |MT s -> Format.printf "%s" s
   |Unit -> Format.printf "Unit"
   |Int -> Format.printf "Int"
@@ -124,7 +124,6 @@ and print_type (t:Program.t) =
   |Fun(t1,t2) -> Format.printf "%a->%a" (fun _ ->print_type) t1 (fun _ ->print_type) t2
   |Struct list -> Format.printf "[%a]" ( fun _ -> type_struct_print ) list
   |Any -> Format.printf "Any"
-  |FunClos(env,s,e) -> Format.printf "FunClos(%a,%s,%a)" (fun _ -> print_env) env s (fun _ -> print_expr) e
 
 and type_tuple_print list =
   match list with

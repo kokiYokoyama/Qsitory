@@ -134,17 +134,15 @@ z=function1(2) (3)
 
 
 //引数が複数の関数の使用
-/*
 def function1 (x,y) :
    z=x+y
    return (x,y,z)
 
-(x,y,z)=function1(2) (3)
-*/
+//(a,b,c)=function1(2) (3)
 
 
-//引数が一つの関数の使用
 /*
+//引数が一つの関数の使用
 def function0 (x) :
    x
 
@@ -175,12 +173,14 @@ fordict k,n in [("key1",1),("key2",2)]:
 z+="string"
 */
 
+/*
 z=[]
 l1=[1,2]
 l2=[3,4]
 l3=[5,6]
 for a,b,c in l1,l2,l3:
    z+=a+b+c
+*/
 
 //うまく動作していない
 /*
@@ -191,7 +191,6 @@ l3=[5,6]
 for a,b,c in l1,l2,l3:
    z+=a+b
 */
-
 
 /*
 z=[]
@@ -205,6 +204,7 @@ match l :
  |[] -> 0
  |[x] -> 1
  |[x,y,z] -> 2
+x
 */
 
 /*
@@ -227,7 +227,7 @@ else :
    0
 */
 
-//確かevalの問題?
+//parseError
 //if x=1 :fun x -> x+2 else : fun x -> 2*x
 
 //1+2
@@ -242,10 +242,8 @@ else :
 //l = [1,2,3]
 //l .-= 2
 
-/*
-l = [ (1,2),(3,4) ]
-l .-= (_,2)
-*/
+//l = [ (1,2),(3,4) ]
+//l .-= (_,2)
 
 //i = 1
 //i += 2
@@ -270,20 +268,16 @@ l .-= (_,2)
 //llt=[ [ [ ("name",1) , ("age",2) ] , [ ("id",3) ] ] , [ [ ("name",4)] ,[ ("age" ,5) ] ] ]
 //llt+=[ [ ("id" ,6) ] , [ ("id" ,7) ] ]
 
-//リストとリストのタプルとは認識されていない
+
 //tl=([1,2],[3,4])
 //tl+=[5,6]
 
 //i += 2
 
-//構造体を定義する概念がないからeval error
-//user1.id = 1
+//string : name = "program"
+//(name,since,where) = ("Qsitory",2022,"Japan")
 
-/*
-string : name = "program"
-(name,since,where) = ("Qsitory",2022,"Japan")
-*/
 
 //x=1
 //x="string"
-
+//1

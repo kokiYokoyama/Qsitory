@@ -32,6 +32,7 @@ and pp_aop fmt (aop:Program.aop) =
 and pp_type fmt (t:Program.t) =
   match t with
   | T s -> pp_string fmt s
+  | A s -> pp_string fmt s
   | MT s -> pp_string fmt s
   | Int -> pp_string fmt "Int"
   | Unit -> pp_string fmt "Unit"         
@@ -42,8 +43,7 @@ and pp_type fmt (t:Program.t) =
   | Tuple list -> F.fprintf fmt "Tuple(%a)" (pp_list0 pp_type) list
   | Fun(t1,t2) -> F.fprintf fmt "%a->%a" pp_type t1 pp_type t2
   | Struct list -> F.fprintf fmt "%a" (pp_list0 pp_type_struct1) list
-  | Any -> pp_string fmt "Any"
-  | FunClos(env,s,e) -> F.fprintf fmt "FunClos(%a,%s,%a)" pp_env env s pp_expr e 
+  | Any -> pp_string fmt "Any" 
 
 and pp_type_struct1 fmt (s,t,_) = pp_tuple2 pp_string pp_type fmt (s,t)
          

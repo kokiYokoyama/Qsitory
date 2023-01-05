@@ -55,7 +55,41 @@ let parse str =
      doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
      F.printf "@[\n\nUnknown Parse error: %S@." (Lexing.lexeme lexbuf);
      exit 0
-           
+
+let a (tn:int) :Program.t = A ("A" ^ string_of_int(tn))
+                          
+let rec arrange_solutions (solutions:Program.tequals) (n:int) :(Program.tequals * int) =
+  match solutions with
+  |(t1,t2)::solutions1 ->
+    begin
+      match add_type t2 n [] with
+      |(t3,n1,fs1) ->
+        begin
+          match solutions1 with
+          |[] -> (((t1,t3)::fs1),n1)
+          |_ ->
+            begin
+              match arrange_solutions solutions1 n1 with
+              |(solutions2,n2) -> (((t1,t3)::(solutions2@fs1)),n2)
+            end
+        end
+    end
+  |_ -> raise Error
+
+and add_type (t2:Program.t) (n:int) (fs:Program.tequals) :(Program.t * int * Program.tequals) =
+  match t2 with
+  |T s1 -> ((a n),(n+1),fs)
+  |Fun((t3),(t4)) ->
+    begin
+      match add_type t3 n fs with
+      |(t5,n1,fs1) ->
+        begin
+          match add_type t4 n1 fs with
+          |(t6,n2,fs2) -> (Fun(t5,t6),n2,((t4,t6)::(t3,t5)::fs2))
+        end
+    end
+  |_ -> (t2,n,fs)
+
 (* envのT(s)を具体的なtypeに直す *)
 let rec arrange_env (env:Program.env) (solutions:Program.tequals) (fenv:Program.env) :Program.env =
   match env with
@@ -67,6 +101,15 @@ and find_type_solutions (t:Program.t) (solutions:Program.tequals) :Program.t =
   |t2 ->
     begin
       match t2 with
+      |Fun(t3,t4) ->
+        begin
+          match find_type_solutions t3 solutions with
+          |t5 ->
+            begin
+              match find_type_solutions t4 solutions with
+              |t6 -> Fun(t5,t6)
+            end
+         end
       |List (T s2) -> List (find_type_solutions (find_type_solutions2 (T s2) solutions) solutions)
       |Tuple (tlist) -> Tuple(tuple_fts tlist solutions)
       |_ -> t2
@@ -115,6 +158,43 @@ let rec main_tval (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) =
           |None -> raise TypeError
         end
     end
+
+let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) (an:int) =
+  (* Format.printf "%a\n\n" (fun _-> print_env) env; *)
+  match ee with
+  |[] -> Format.printf "finish"
+  |e::ee1 ->
+    begin
+      match expr_tval e env tenv [] 0 with
+      |(env1,tenv1,tequals,n) ->
+        Format.printf "%a\n\n" (fun _-> print_env) env1;
+        Format.printf "%a\n" (fun _-> print_tequals) tequals;
+        begin
+          match unif tequals [] with
+          |Some solutions ->
+            (* Format.printf "%a\n" (fun _-> print_tequals) solutions; *)
+            begin
+              match arrange_solutions solutions an with
+              |(solutions1,an1) ->
+                (* Format.printf "%a\n\n" (fun _ -> print_tequals) solutions1; *)
+                begin
+                  match arrange_env env1 solutions1 [] with
+                  |env2 -> (* Format.printf "%a\n\n" (fun _-> print_env) env2; *)
+                    begin
+                      match expr_eval e env2 tenv1 with
+                      |(v,env3,tenv2) ->
+                        (* Format.printf "%a\n" (fun _ -> print_evalResult) (v,env3,tenv2); *)
+                        begin
+                          match ee1 with
+                          |[] -> print_evalResult (v,env3,tenv2)
+                          |_ -> main_interpreter ee1 env3 tenv2 an1
+                        end
+                    end
+                end
+            end
+          |None -> raise TypeError
+        end
+    end
     
 let interpreter filename =
   F.printf "@[*****************************@.";
@@ -127,8 +207,9 @@ let interpreter filename =
     let ee = parse str in (* 読んだ中身を構文解析して結果を e とする *)
     doIfDebug "PARSING" print_endline ">> Parsed Result (internal data)";
     doIfDebug "PARSING" (F.printf "@[%a\n@." (pp_list "" "\n" (fun _ -> print_expr))) ee; (* expr 型 e を表示する *)
-    match main_tval ee [] [] with
-    |tenv -> main_eval ee [] tenv
+    main_interpreter ee [] [] 0
+    (* match main_tval ee [] [] with
+     * |tenv -> main_eval ee [] tenv *)
     (* main_eval ee [] [] *)
     (* print_env (main_tval ee [] []) *)
     
