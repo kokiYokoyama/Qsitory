@@ -229,7 +229,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
           |_ -> raise Error
         end
     end
-  |Dfun(s,e) -> (FunClos(env,s,e),env,tenv)
+  |Dfun(t,s,e) -> (FunClos(env,s,e),env,tenv)  (* dummy *)
   |Fun(e1,e2) ->
     begin
       match expr_eval e1 env tenv with
@@ -980,7 +980,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
       match expr_tval e1 env tenv (((t (n+1)),Bool)::((t n),Unit)::tequals) (n+1) with
       |(env1,tenv1,tequals1,n1) -> expr_tval e2 env1 tenv1 tequals1 (n1+1)
     end
-  |Dfun(s,e) -> expr_tval e ((s,t (n+1),None)::env) tenv (((t (n+3)),(t (n+2)))::((t n),Fun(t (n+1),t (n+2)))::tequals) (n+3)
+  |Dfun(tp,s,e) -> expr_tval e ((s,t (n+1),None)::env) tenv (((t (n+3)),(t (n+2)))::((t n),Fun(t (n+1),t (n+2)))::tequals) (n+3) (* dummy *)
   |Fun(e1,e2) ->
     begin
       match expr_tval e1 env tenv ((t n,t (n+3))::(t (n+1),Fun(t (n+2),t (n+3)))::tequals) (n+1) with

@@ -210,7 +210,7 @@ and print_expr (e:Program.e) =
   |For(list1,list2,e) -> Format.printf "For([%a],[%a],%a)" (fun _ -> expr_parlist_print) list1 (fun _ -> expr_arglist_print) list2 (fun _ -> print_expr) e
   |For_dict(list1,e1,e2) -> Format.printf "For_dict([%a],%a,%a)" (fun _ -> expr_parlist_print) list1 (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
   |While(e1,e2) -> Format.printf "While(%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
-  |Dfun(s,e) -> Format.printf "Dfun(%s,%a)" s (fun _ -> print_expr) e
+  |Dfun(t,s,e) -> Format.printf "Dfun(%a,%s,%a)" (fun _ -> print_type) t s (fun _ -> print_expr) e
   |Fun(e1,e2) -> Format.printf "Fun(%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
   |Return(e) -> Format.printf "Return(%a)" (fun _ -> print_expr) e
   |Dstruct(s,e) -> Format.printf "Dstruct(%s,%a)"  s (fun _ -> print_expr) e

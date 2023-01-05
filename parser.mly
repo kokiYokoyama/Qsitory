@@ -227,13 +227,13 @@ patexp:
   | FUN; ss = separated_list(COMMA,IDENT0); ARROW; ee = py_suite
        {
          let ss = if ss = [] then [""] else ss in
-         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(s,P.Block ee)]) ss ee) in
+         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(P.Any,s,P.Block ee)]) ss ee) in  (* dummy *)
          packExp @@ eFun
        }
   | FUN; LPAREN; ss = separated_list(COMMA,IDENT0); RPAREN; ARROW; ee = py_suite
        {
          let ss = if ss = [] then [""] else ss in
-         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(s,P.Block ee)]) ss ee) in
+         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(P.Any,s,P.Block ee)]) ss ee) in (* dummy *)
          packExp @@ eFun
        }
   | qFun = patexp; LPAREN; qArg = patexp; RPAREN
@@ -241,7 +241,7 @@ patexp:
   | DEF; fname = IDENT0; LPAREN; ss = separated_list(COMMA,IDENT0); RPAREN; COLON; ee = py_suite
        {
          let ss = if ss = [] then [""] else ss in
-         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(s,P.Block ee)]) ss ee) in
+         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(P.Any,s,P.Block ee)]) ss ee) in (* dummy *)
          packExp @@ P.Formu(pVar fname, eFun)
        }
 /// Return
