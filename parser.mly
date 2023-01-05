@@ -156,8 +156,13 @@ qtype:
             raise (ParseError ("Unexpected struct definition: " ^ mes))
         in
         tStruct (List.map mkEnv1 ee)
-      };
-
+      }
+;
+tpprm:
+/// For func-params
+  | x = IDENT0 { (P.Any,x) }
+  | t = qtype COLON x = IDENT0 { (t,x) }
+;    
 patexp:
 /// Numeral / String / Wild
   | n = INT    { packPatExp (pInt n) (eInt n) }
@@ -224,24 +229,24 @@ patexp:
   | qStr = patexp; DOTDOT; qFld = patexp { packExp @@ P.UseIns2(unpackExp qStr, unpackExp qFld) }
   | sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }
 /// Functions:
-  | FUN; ss = separated_list(COMMA,IDENT0); ARROW; ee = py_suite
+  | FUN; prm = separated_list(COMMA,tpprm); ARROW; ee = py_suite
        {
-         let ss = if ss = [] then [""] else ss in
-         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(P.Any,s,P.Block ee)]) ss ee) in  (* dummy *)
+         let prm = if prm = [] then [(P.Any,"")] else prm in
+         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,P.Block ee)]) prm ee) in
          packExp @@ eFun
        }
-  | FUN; LPAREN; ss = separated_list(COMMA,IDENT0); RPAREN; ARROW; ee = py_suite
+  | FUN; LPAREN; prm = separated_list(COMMA,tpprm); RPAREN; ARROW; ee = py_suite
        {
-         let ss = if ss = [] then [""] else ss in
-         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(P.Any,s,P.Block ee)]) ss ee) in (* dummy *)
+         let prm = if prm = [] then [(P.Any,"")] else prm in
+         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,P.Block ee)]) prm ee) in
          packExp @@ eFun
        }
   | qFun = patexp; LPAREN; qArg = patexp; RPAREN
        { packExp @@ P.Fun(unpackExp qFun,unpackExp qArg) }
-  | DEF; fname = IDENT0; LPAREN; ss = separated_list(COMMA,IDENT0); RPAREN; COLON; ee = py_suite
+  | DEF; fname = IDENT0; LPAREN; prm = separated_list(COMMA,tpprm); RPAREN; COLON; ee = py_suite
        {
-         let ss = if ss = [] then [""] else ss in
-         let eFun = List.hd (List.fold_right (fun s ee -> [P.Dfun(P.Any,s,P.Block ee)]) ss ee) in (* dummy *)
+         let prm = if prm = [] then [(P.Any,"")] else prm in
+         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,P.Block ee)]) prm ee) in
          packExp @@ P.Formu(pVar fname, eFun)
        }
 /// Return
