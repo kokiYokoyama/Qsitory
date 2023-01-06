@@ -1,5 +1,5 @@
 exception Error
-exception Error6        
+exception Error6
 module Program = struct
   (* Definition------------------------------------------------------------*)
 

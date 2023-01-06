@@ -1,6 +1,6 @@
 
 all: qsitory_main.ml syntax.ml evaluation.ml interactive.ml readfile.ml pprint.ml tools.ml lexer.mll parser.mly
-	ocamlopt -c tools.ml syntax.ml evaluation.ml pprint.ml
+	ocamlopt -c tools.ml syntax.ml pprint.ml evaluation.ml 
 	ocamllex lexer.mll
 	menhir --infer --explain parser.mly
 	ocamlopt -c parser.mli

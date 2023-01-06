@@ -10,6 +10,8 @@ exception NoMatchPatternError
 exception NotMatchExpressionError
 exception OperateTypeError
 open Syntax
+open Tools
+open Pprint
 (* Expr_Eval-------------------------------------------------------------- *)
 
 let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.evalResult  =
@@ -760,6 +762,7 @@ and findMyType (tenv:Program.tenv) (list:Program.env) (flist:Program.env) =
 and t (tn:int) :Program.t = T ("T" ^ string_of_int(tn))
 
 and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
+  Format.printf "@[%a: (%a)@." pp_expr e pp_type (t n);
   match e with
   |Int i -> (env,tenv,(((t n),Int)::tequals),n)
   |Double d -> (env,tenv,(((t n),Double)::tequals),n)
