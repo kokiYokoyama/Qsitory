@@ -997,8 +997,8 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
   |Dfun(tp,s,e) -> expr_tval e ((s,tp,None)::env) tenv (((t (n+4)),t (n+2))::(t (n+1),tp)::((t (n+3)),(t (n+1)))::((t n),Fun(t (n+1),t (n+2)))::tequals) (n+4)
   |Fun(e1,e2) ->
     begin
-      match expr_tval e1 env tenv ((t n,t (n+3))::(t (n+1),Fun(t (n+2),t (n+3)))::tequals) (n+1) with
-      |(env1,tenv1,tequals1,n1) -> Format.printf "%i" (n+1); expr_tval e2 env1 tenv1 ((t (n+4),t (n+2))::tequals1) (n+4)
+      match expr_tval e1 env tenv ((t (n+1),Fun(t (n+2),t n))::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) -> expr_tval e2 env1 tenv1 ((t (n+2),t (n1+1))::tequals1) (n1+1)
     end
   |Return e ->
     begin

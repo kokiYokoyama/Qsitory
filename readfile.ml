@@ -223,7 +223,7 @@ let interpreter filename =
                      print_newline ();
      *)
   with
-  | TypeError -> F.printf "raise type error done"
+  | TypeError -> F.printf "@[raise type error done@."
 (*    
   | AddTypeError -> print_endline "can only int+int"; exit 0
   | SubTypeError -> print_endline "can only int-int"; exit 0
