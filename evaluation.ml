@@ -994,7 +994,10 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
       match expr_tval e1 env tenv (((t (n+1)),Bool)::((t n),Unit)::tequals) (n+1) with
       |(env1,tenv1,tequals1,n1) -> expr_tval e2 env1 tenv1 tequals1 (n1+1)
     end
-  |Dfun(tp,s,e) -> expr_tval e ((s,tp,None)::env) tenv (((t (n+4)),t (n+2))::(t (n+1),tp)::((t (n+3)),(t (n+1)))::((t n),Fun(t (n+1),t (n+2)))::tequals) (n+4)
+  |Dfun(tp,s,e) ->
+    let env1 = (s,tp,None)::env in
+    let tequals1 = [(t(n+4),t(n+2)); (t(n+1),tp); (t(n+3),t(n+1)); (t n,Fun(t(n+1),t(n+2)))] @ tequals in
+    expr_tval e env1 tenv tequals1 (n+4)    
   |Fun(e1,e2) ->
     begin
       match expr_tval e2 env tenv tequals (n+1) with
@@ -1005,23 +1008,22 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
       match expr_tval e1 env tenv ((t (n+1),Fun(t (n+2),t n))::tequals) (n+1) with
       |(env1,tenv1,tequals1,n1) -> expr_tval e2 env1 tenv1 ((t (n+2),t (n1+1))::tequals1) (n1+1)
     end
-*)
+ *)
   |Return e ->
-    begin
-      match expr_tval e env tenv (((t (n)),Unit)::tequals) (n+1) with
-      |(env1,tenv1,tequals1,n1) -> (* Format.printf "%i" (n+1); *)
-        begin
-          match find_type_tequals (t (n+1)) tequals1 with
-          |t1 -> ((("rv",t1,None)::(find_remove env1 "rv" [])),tenv1,tequals1,n1)
-        end
-    end
+    let (env1,tenv1,tequals1,n1) = expr_tval e env tenv (((t n),Unit)::tequals) (n+1) in
+    let t1 = find_type_tequals (t (n+1)) tequals1 in
+    ((("rv",t1,None)::(find_remove env1 "rv" [])),tenv1,tequals1,n1)
+
   |Dstruct(s,e) ->
-    begin
-      match makeStructTenv e with
-      |structData -> env,(((MT s),Struct(structData))::tenv),(((t n),Unit)::tequals),n
-    end
+    let structData = makeStructTenv e in
+    (env,(((MT s),Struct(structData))::tenv),(((t n),Unit)::tequals),n)
   |MakeIns(s) -> (env,tenv,(((t n),(MT s))::tequals),n)
   |UseIns1(e1,s) ->
+    let (env1,tenv1,tequals1,n1) = expr_tval e1 env tenv tequals (n+1) in
+    let structEnv = find_structEnv tenv1 tequals1 (n+1) in
+    let t1 = find_type structEnv s in
+    (env1,tenv1,(((t n),t1)::tequals1),n1)
+    (*
     begin
       match expr_tval e1 env tenv tequals (n+1) with
       |(env1,tenv1,tequals1,n1) -> (* print_env env1; *) 
@@ -1033,7 +1035,8 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
               |t1 -> (env1,tenv1,(((t n),t1)::tequals1),n1)
             end
         end
-    end
+    end*)
+    
   |UseIns2(e1,e2) ->
     begin
       match expr_tval e1 env tenv (((t (n+1)),String)::tequals) (n+1) with
@@ -1055,32 +1058,37 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
             end
         end
     end
-   |Block(elist) ->
+  |Block(elist) ->
+    (*
+    Format.printf "@[==========================@.";
+    Format.printf "@[%a@." Pprint.pp_env env;
+    Format.printf "@[=======@.";
+    Format.printf "@[%a@." Pprint.pp_tequals tequals;
+    Format.printf "@[=======@.";
+    Format.printf "@[%a@." Pprint.pp_tequals tequals1;    
+    Format.printf "@[==========================@.";
+     *)
     begin
       match elist with
-      |e::elist1 ->
-        begin
-          match expr_tval e env tenv tequals (n+1) with
-          |(env1,tenv1,tequals1,n1) ->
-            begin
-              match elist1 with
-              |[] ->
-                begin
-                  try
-                    begin
-                      match find_type env1 "rv" with
-                      |t1 -> (env1,tenv1,(((t n),t1)::tequals1),n1)
-                    end
-                  with
-                  |NoValueError -> (env1,tenv1,(((t n),t (n+1))::tequals1),n1)
-                end
-              |_ -> secondBlock_tval elist1 env1 tenv1 tequals1 n1 n
-            end
-        end
-      |_ -> raise Error
+      | [] -> raise Error
+      | e::elist1 ->
+         let (env1,tenv1,tequals1,n1) = expr_tval e env tenv tequals (n+1) in
+         begin
+           match elist1 with
+           | [] ->
+              begin
+                try 
+                  let t1 = find_type env1 "rv" in
+                  let env2 = find_remove env1 "rv" [] in
+                  (env2,tenv1,(((t n),t1)::tequals1),n1)
+                with
+                | NoValueError -> (env1,tenv1,(((t n),t (n+1))::tequals1),n1)
+              end
+           | _ -> secondBlock_tval elist1 env1 tenv1 tequals1 n1 n
+         end
     end
-       
-            
+    
+    
 
 (* Pat_Tval--------------------------------------------------------------- *)
 
@@ -1533,26 +1541,20 @@ and operateType (n1:int) (n2:int) (op:Program.op) (tequals:Program.tequals) :Pro
 
 and secondBlock_tval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) (n0:int) :Program.tvalResult =
   match elist with
-  |e::[] ->
-    begin
-      match expr_tval e env tenv tequals (n+1) with
-      |(env1,tenv1,tequals1,n1) ->
-        begin
-          try
-            begin
-              match find_type env1 "rv" with
-              |t1 -> (env1,tenv1,(((t n0),t1)::tequals1),n1)
-            end
-          with
-          |NoValueError -> (env1,tenv1,(((t n0),t (n+1))::tequals1),n1)
-        end
-    end
-  |e::elist1 ->
-    begin
-      match expr_tval e env tenv tequals (n+1) with
-      |(env1,tenv1,tequals1,n1) -> secondBlock_tval elist1 env1 tenv1 tequals1 n1 n0
-    end
-  |_ -> raise Error
+  | [] -> raise Error
+  | e::[] ->
+     let (env1,tenv1,tequals1,n1) = expr_tval e env tenv tequals (n+1) in
+     begin
+       try
+         let t1 = find_type env1 "rv" in
+         let env2 = find_remove env1 "rv" [] in
+         (env2,tenv1,(((t n0),t1)::tequals1),n1)
+       with
+       | NoValueError -> (env1,tenv1,(((t n0),t (n+1))::tequals1),n1)
+     end
+  | e::elist1 ->
+     let (env1,tenv1,tequals1,n1) = expr_tval e env tenv tequals (n+1) in
+     secondBlock_tval elist1 env1 tenv1 tequals1 n1 n0
 
 and secondMatch_tval (patlist:(Program.p * Program.e) list) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) (np:int) (ne:int) :Program.tvalResult =
   match patlist with
