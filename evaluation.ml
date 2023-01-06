@@ -1008,8 +1008,8 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
 *)
   |Return e ->
     begin
-      match expr_tval e env tenv (((t n),Unit)::tequals) (n+1) with
-      |(env1,tenv1,tequals1,n1) ->
+      match expr_tval e env tenv (((t (n)),Unit)::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) -> (* Format.printf "%i" (n+1); *)
         begin
           match find_type_tequals (t (n+1)) tequals1 with
           |t1 -> ((("rv",t1,None)::(find_remove env1 "rv" [])),tenv1,tequals1,n1)
@@ -1640,6 +1640,8 @@ let rec unif (tequals:Program.tequals) (solutions:Program.tequals) =
     end
   |(A s,_)::tequals1 -> unif tequals1 solutions
   |(_,A s)::tequals1 -> unif tequals1 solutions
+  |(Any,t)::tequals1 -> unif tequals1 solutions
+  |(t,Any)::tequals1 -> unif tequals1 solutions
   |(t3,t4)::tequals1 -> None
 
 (* unif's function!------------------------------------------------------- *)

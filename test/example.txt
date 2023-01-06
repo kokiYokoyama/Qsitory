@@ -143,14 +143,14 @@ def function1 (int: x,int: y) :
 */
 
 def function0 (int: x,int: y) :
-   x+y
+   return  x+y
 
-z=function0(1) (2)
+//z=function0(1) (2)
 
-/*
 //引数が一つの関数の使用
+/*
 def function0 (x) :
-   x
+  return x
 
 function0(1)
 */
