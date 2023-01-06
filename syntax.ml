@@ -111,9 +111,9 @@ and print_aop (aop:Program.aop) =
 (* type *)
 and print_type (t:Program.t) =
   match t with
-  |T s -> Format.printf "%s" s
-  |A s -> Format.printf "%s" s
-  |MT s -> Format.printf "%s" s
+  |T s -> Format.printf "(%s)" s
+  |A s -> Format.printf "(%s)" s
+  |MT s -> Format.printf "(%s)" s
   |Unit -> Format.printf "Unit"
   |Int -> Format.printf "Int"
   |Double -> Format.printf "Double"      
@@ -121,7 +121,7 @@ and print_type (t:Program.t) =
   |String -> Format.printf "String"
   |List t1 -> Format.printf "List(%a)" (fun _ -> print_type) t1
   |Tuple list -> Format.printf "Tuple(%a)" (fun _ -> type_tuple_print) list
-  |Fun(t1,t2) -> Format.printf "%a->%a" (fun _ ->print_type) t1 (fun _ ->print_type) t2
+  |Fun(t1,t2) -> Format.printf "Fun(%a->%a)" (fun _ ->print_type) t1 (fun _ ->print_type) t2
   |Struct list -> Format.printf "[%a]" ( fun _ -> type_struct_print ) list
   |Any -> Format.printf "Any"
 

@@ -242,6 +242,7 @@ let interpreter filename =
   |Error4 -> print_endline "Exception: Error4"; exit 0
   |Error5 -> print_endline "Exception: Error5"; exit 0
   |Error6 -> print_endline "Exception: Error6"; exit 0
+  (* |NoValueError -> print_endline "Exception: NoValueError"; exit 0 *)
   |OperateTypeError -> print_endline "Exception: OperateTypeError"; exit 0
   | _ -> print_endline "Exception: Eval error"; exit 0
 ;;
