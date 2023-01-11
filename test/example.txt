@@ -13,7 +13,8 @@
 :入力ができない
 :条件式にinを追加したい if month in [1,3,5,7,8,10,12]
 :メソッドも欲しい
-
+:Hasilでzipwithがある．
+:構造体はJavaScriptでa["x"]という書き方ができる．
 
 */
 
@@ -48,16 +49,14 @@ z1.z.x=1
 a=z1.z.x
 */
 
-/*
 struct Struct1 :
    int : x
    int : y
 
 a=Struct1()
 a.x=1
-b=a.x
-//b="a".."x"
-*/
+//b=a.x
+b="a".."x"
 
 /*
 //return文により強制終了がされているか
@@ -120,18 +119,22 @@ def function1 (x) :
 z=function1 (2) (3)
 */
 
-/*
 //定義後の関数を使用
+/*
 def function0 (x) :
    x
 
-def function1 (x,y) :
+def function1 (int: x,int: y) :
    z=x+y
    function0 (z)
 
 z=function1(2) (3)
 */
 
+/*
+x=[1,2,3]
+x=1+x
+*/
 
 //引数が複数の関数の使用
 /*
@@ -142,8 +145,10 @@ def function1 (int: x,int: y) :
 (a,b,c)=function1(2) (3)
 */
 
+/*
 def function0 (int: x,int: y) :
    return  x+y
+*/
 
 //z=function0(1) (2)
 

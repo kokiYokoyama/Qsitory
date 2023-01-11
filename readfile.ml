@@ -55,94 +55,7 @@ let parse str =
      doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
      F.printf "@[\n\nUnknown Parse error: %S@." (Lexing.lexeme lexbuf);
      exit 0
-
-let a (tn:int) :Program.t = A ("A" ^ string_of_int(tn))
                           
-let rec arrange_solutions (solutions:Program.tequals) (n:int) :(Program.tequals * int) =
-  match solutions with
-  |(t1,t2)::solutions1 ->
-    begin
-      match add_type t2 n [] with
-      |(t3,n1,fs1) ->
-        begin
-          match solutions1 with
-          |[] -> (((t1,t3)::fs1),n1)
-          |_ ->
-            begin
-              match arrange_solutions solutions1 n1 with
-              |(solutions2,n2) -> (((t1,t3)::(solutions2@fs1)),n2)
-            end
-        end
-    end
-  |_ -> raise Error
-
-and add_type (t2:Program.t) (n:int) (fs:Program.tequals) :(Program.t * int * Program.tequals) =
-  match t2 with
-  |T s1 -> ((a n),(n+1),fs)
-  |Fun((t3),(t4)) ->
-    begin
-      match add_type t3 n fs with
-      |(t5,n1,fs1) ->
-        begin
-          match add_type t4 n1 fs with
-          |(t6,n2,fs2) -> (Fun(t5,t6),n2,((t4,t6)::(t3,t5)::fs2))
-        end
-    end
-  |_ -> (t2,n,fs)
-
-(* envのT(s)を具体的なtypeに直す *)
-let rec arrange_env (env:Program.env) (solutions:Program.tequals) (fenv:Program.env) :Program.env =
-  match env with
-  |(s,t,v)::env1 -> arrange_env env1 solutions ((s,(find_type_solutions t solutions),v)::fenv)
-  |[] -> fenv
-
-and find_type_solutions (t:Program.t) (solutions:Program.tequals) :Program.t =
-  match find_type_solutions2 t solutions with
-  |t2 ->
-    begin
-      match t2 with
-      |Fun(t3,t4) ->
-        begin
-          match find_type_solutions t3 solutions with
-          |t5 ->
-            begin
-              match find_type_solutions t4 solutions with
-              |t6 -> Fun(t5,t6)
-            end
-         end
-      |List (T s2) -> List (find_type_solutions (find_type_solutions2 (T s2) solutions) solutions)
-      |Tuple (tlist) -> Tuple(tuple_fts tlist solutions)
-      |_ -> t2
-    end
-
-and find_type_solutions2 (t:Program.t) (solutions:Program.tequals) :Program.t =
-  match solutions with
-  |(t1,t2)::solutions1 ->
-    begin
-      match t1,t with
-      |T s1,T s2 -> if String.equal s1 s2 then t2 else find_type_solutions2 t solutions1
-      |T s1,_ -> t
-      |_ -> raise Error
-    end
-  |[] -> raise Error
-
-and tuple_fts (tlist:Program.t list) (solutions:Program.tequals) :Program.t list =
-  List.map (fun t1 -> find_type_solutions t1 solutions) tlist
-
-let rec main_eval (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) =
-  match ee with
-  |[] -> Format.printf "finish"
-  |e::[] -> print_evalResult (expr_eval e env tenv)  
-  |e::ee1 ->
-    begin
-      match expr_eval e env tenv with
-      |(v1,env1,tenv1) ->
-        begin
-          match print_evalResult (v1,env1,tenv1) with
-          |_ -> main_eval ee1 env1 tenv1
-        end
-    end
-
 let rec main_tval (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) =
   match ee with
   |[] -> tenv
@@ -167,8 +80,8 @@ let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.te
     begin
       match expr_tval e env tenv [] 0 with
       |(env1,tenv1,tequals,n) ->
-        Format.printf "@[%a\n@." (fun _-> print_env) env1;
-        Format.printf "@[%a\n@." P.pp_tequals tequals;
+        (* Format.printf "@[%a\n@." (fun _-> print_env) env1; *)
+        (* Format.printf "@[%a\n@." P.pp_tequals tequals; *)
         begin
           match unif tequals [] with
           |Some solutions ->

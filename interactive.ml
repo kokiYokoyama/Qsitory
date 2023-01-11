@@ -42,6 +42,7 @@ Prepare a scanner sc
 *)
 exception GotoNextA
 exception GotoNextB
+exception TypeError
 
 type scanner =
   {
@@ -51,9 +52,10 @@ type scanner =
     mutable line: string;
     mutable env: Program.env;
     mutable tenv: Program.tenv;
+    mutable an: int;
   }
 ;;
-let sc: scanner = { freshLine = true; readFinish = false; input = ""; line = ""; env = []; tenv = [] }
+let sc: scanner = { freshLine = true; readFinish = false; input = ""; line = ""; env = []; tenv = []; an = 0 }
 ;;
 let resetScanner() =
   sc.freshLine <- true;
@@ -106,10 +108,17 @@ let interpreter () =
        doIfDebug "PARSING" (F.printf "@[Expr: %a@." (pp_list "" "\n" P.pp_expr)) ee;
        let valueOpt = ref None in
        List.iter (fun e ->
-           let (v,ev,tev) = Evaluation.expr_eval e sc.env sc.tenv in
-           sc.env <- ev;
-           sc.tenv <- tev;
-           valueOpt := Some v
+           let (env1,tenv1,tequals1,n1) = Evaluation.expr_tval e sc.env sc.tenv [] 0 in
+           match Evaluation.unif tequals1 [] with
+           |Some solutions1 ->
+             let (solutions2,an1) = Evaluation.arrange_solutions solutions1 sc.an in
+             let env2 = Evaluation.arrange_env env1 solutions2 [] in
+             let (v,ev,tev) = Evaluation.expr_eval e env2 tenv1 in
+             sc.env <- ev;
+             sc.tenv <- tev;
+             sc.an <- an1;
+             valueOpt := Some v
+           |None -> raise TypeError
          ) ee;
        F.printf "@[Value: %a@." (pp_opt "NoValue" Pprint.pp_value) !valueOpt;
        F.printf "@[Env : [%a]@." Pprint.pp_env sc.env;

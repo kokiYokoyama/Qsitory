@@ -60,4 +60,10 @@ let rec list_assoc3_opt key ls3 =
   | [] -> None
   | (k,a,b)::ls3 when key = k -> Some (a,b)
   | _::ls3' -> list_assoc3_opt key ls3'
+
+let split_dp (s:string) :string =
+  match String.get s 0 with
+  |'\"' -> String.sub s 1 ((String.length s)-2)
+  |_ -> s
+      
                  

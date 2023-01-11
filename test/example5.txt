@@ -1,6 +1,6 @@
 //関数(Error)
 
-def is_leapyear(y):
+def is_leapyear(int: y):
    return (y mod 400 == 0) or ( (y mod 4 == 0) and  (not (y mod 100 == 0)))
 
 current_year = 2023
