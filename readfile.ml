@@ -80,8 +80,8 @@ let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.te
     begin
       match expr_tval e env tenv [] 0 with
       |(env1,tenv1,tequals,n) ->
-        (* Format.printf "@[%a\n@." (fun _-> print_env) env1; *)
-        (* Format.printf "@[%a\n@." P.pp_tequals tequals; *)
+        Format.printf "@[%a\n@." (fun _-> print_env) env1;
+        Format.printf "@[%a\n@." P.pp_tequals tequals;
         begin
           match unif tequals [] with
           |Some solutions ->
