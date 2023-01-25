@@ -768,7 +768,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
   |Double d -> (env,tenv,(((t n),Double)::tequals),n)
   |Bool b -> (env,tenv,(((t n),Bool)::tequals),n)
   |String s -> (env,tenv,(((t n),String)::tequals),n)
-  |Var s -> (env,tenv,(((t n),(find_type env s))::tequals),n)
+  |Var s -> (env,tenv,(((t n),(find_type env s))::tequals),n+1)
   |Null -> (env,tenv,(((t n),(t (n+1)))::tequals),n+1)
   |Nil -> (env,tenv,(((t n),(List(t (n+1))))::tequals),n+1)
   |Cons(e1,e2) ->
@@ -950,7 +950,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
                   |env2 ->
                     (* 2要素目以降 *)
                     match secondForDict_tval paraList1 tlist1 env2 tequals1 with
-                    |env3 -> expr_tval e env3 tenv1 (((t n),Unit)::tequals1) (n1+1)
+                    |env3 -> expr_tval e env3 tenv1 tequals1 (n1+1)
                 end
               |_ -> raise Error
             end
@@ -958,28 +958,24 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
         end
       |s1::paraList1,Var(s) ->
         begin
-          match expr_tval (Var(s)) env tenv tequals (n+1) with
-          |(env1,tenv1,tequals1,n1) ->
+          match find_type_tequals (t (n+1)) tequals1 with
+          |List(Tuple(tlist)) ->
             begin
-              match find_type_tequals (t (n+1)) tequals1 with
-              |List(Tuple(tlist)) ->
+              match tlist with
+              |t1::tlist1 -> 
                 begin
-                  match tlist with
-                  |t1::tlist1 -> 
+                  match makeEnvMatch (Var(s1)) t1 env1 tequals1 with
+                  |env2 ->
+                    (* 2要素目以降 *)
                     begin
-                      match makeEnvMatch (Var(s1)) t1 env1 tequals1 with
-                      |env2 ->
-                        (* 2要素目以降 *)
-                        begin
-                          match secondForDict_tval paraList1 tlist1 env2 tequals with
-                          |env3 ->  expr_tval e env3 tenv1 (((t n),Unit)::tequals1) (n1+1)
-                        end
+                      match secondForDict_tval paraList1 tlist1 env2 tequals with
+                      |env3 ->  expr_tval e env3 tenv1 tequals1 (n1+1)
                     end
-                  |_ -> raise Error
                 end
               |_ -> raise Error
-            end         
-        end
+            end
+          |_ -> raise Error
+        end         
       |_ -> raise Error
     end
   |While(e1,e2) ->

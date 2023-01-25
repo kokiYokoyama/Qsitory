@@ -20,11 +20,14 @@
 
 /*type Error test----------------------------------------------------------*/
 
+/*
 z=[]
 fordict k,n in [("key1",1),("key2",2),(3,"key3")]:
    z+=k
    
 z+="string"
+
+*/
 
 //not 1+2
 //int : a = "A"
@@ -122,7 +125,7 @@ def function1 (x,y) :
 z=function1 (2) (3)
 */
 
-//再帰関数の使用
+//再帰関数の使用(Error)
 /*
 def function1 (x) :
    if x<10 :
@@ -150,7 +153,7 @@ x=[1,2,3]
 x=1+x
 */
 
-//引数が複数の関数の使用
+//引数が複数の関数の使用(Error?)
 /*
 def function1 (int: x,int: y) :
    z=x+y
@@ -254,7 +257,7 @@ else :
 */
 
 //parseError
-//if x=1 :fun x -> x+2 else : fun x -> 2*x
+//if x=1 :(fun x -> x+2) else : (fun x -> 2*x)
 
 //1+2
 //5-2
