@@ -818,12 +818,16 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
           |UseIns1(e3,fi_n) ->
             begin
               match splitSF e1 [] with
-              |(ins_n,fids) -> ((updateFids_tval ins_n fids (n+1) env1 tenv1),tenv1,tequals1,n1)
+              |(ins_n,fids) ->
+                let (env2,tequals2) = updateFids_tval ins_n fids (n+1) env1 tenv1 tequals1 in
+                (env2,tenv1,tequals2,n1)
             end
           |UseIns2(e3,e4) ->
             begin
               match splitSF2 e1 [] env tenv with
-              |(ins_n,fids) -> ((updateFids_tval ins_n fids (n+1) env1 tenv1),tenv1,tequals1,n1)
+              |(ins_n,fids) ->
+                let (env2,tequals2) = updateFids_tval ins_n fids (n+1) env1 tenv1 tequals1 in
+                (env2,tenv1,tequals2,n1)
             end
           |_ -> raise Error
         end
@@ -1331,7 +1335,7 @@ and makeEnvMatch2 (p:Program.p) (t:Program.t) (env:Program.env) :Program.env =
  *     end
  *   |_ -> raise Error *)
 
-and updateFids_tval (ins_n:string) (fids:string list) (n:int) (env:Program.env) (tenv:Program.tenv) :Program.env =
+and updateFids_tval (ins_n:string) (fids:string list) (n:int) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) :(Program.env * Program.tequals) =
   match find_type env ins_n with
   |MT s ->
     begin
@@ -1339,11 +1343,11 @@ and updateFids_tval (ins_n:string) (fids:string list) (n:int) (env:Program.env) 
       |Struct(structEnv) ->
         begin
           match fids with
-          |fi_n::[] -> (ins_n,(MT s),Some (Struct(s,((fi_n,(find_type structEnv fi_n ),(find_op structEnv fi_n))::(find_remove structEnv fi_n [])))))::(find_remove env ins_n [])
+          |fi_n::[] -> ((ins_n,(MT s),Some (Struct(s,((fi_n,(find_type structEnv fi_n ),(find_op structEnv fi_n))::(find_remove structEnv fi_n [])))))::(find_remove env ins_n []),(((t n),(find_type structEnv fi_n))::tequals))
           |fi_n::fids1 ->
             begin
-              match updateFids_tval fi_n fids1 n structEnv tenv with
-              |field1 -> ((ins_n,(MT s),Some (Struct(s,field1)))::(find_remove structEnv ins_n []))
+              match updateFids_tval fi_n fids1 n structEnv tenv tequals with
+              |(field1,tequals1) -> (((ins_n,(MT s),Some (Struct(s,field1)))::(find_remove structEnv ins_n [])),tequals1)
             end
           |_ -> raise Error
         end
