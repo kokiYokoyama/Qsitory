@@ -35,7 +35,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
   |Tuple list ->
     begin
       match expr_tuple_eval list env tenv with
-      |vlist -> ((Tuple vlist),env,tenv)
+      |vlist -> (* print_env env; *) ((Tuple vlist),env,tenv)
     end
   |Declrt1(t,s,e) ->
     begin
@@ -278,7 +278,12 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
       |((String s1),env1,tenv1) ->
         begin
           match expr_eval e2 env1 tenv1 with
-          |((String s2),env2,tenv2) -> expr_eval (UseIns1(Var(s1),s2)) env2 tenv2
+          |((String s2),env2,tenv2) ->
+            begin
+              match find env2 (split_dp s1) with
+              |Struct(s0,structEnv) -> ((find structEnv (split_dp s2)),env2,tenv2)
+              |_ -> raise Error
+            end
           |_ -> raise Error
         end
       |_ -> raise Error
@@ -770,7 +775,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
   |String s -> (env,tenv,(((t n),String)::tequals),n)
   |Var s -> (env,tenv,(((t n),(find_type env s))::tequals),n+1)
   |Null -> (env,tenv,(((t n),(t (n+1)))::tequals),n+1)
-  |Nil -> (env,tenv,(((t n),(List(t (n+1))))::tequals),n+1)
+  |Nil -> (env,tenv,(((t n),(List(Any)))::tequals),n)
   |Cons(e1,e2) ->
     begin
       match expr_tval e1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) with
@@ -779,34 +784,23 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
   |Tuple list ->
     begin
       match expr_tuple_tval list env tenv tequals n with
-      |(tlist,tequals1,n1) -> (env,tenv,(((t n),(Tuple tlist))::tequals1),n1)
+      |(tlist,tequals1,n1) ->
+        (* print_tequals tequals1; *)
+        (env,tenv,(((t n),(Tuple tlist))::tequals1),n1)
     end
   |Declrt1(t1,s,e) -> expr_tval e ((s,t1,None)::(find_remove env s [])) tenv (((t (n+1)),t1)::((t n),Unit)::tequals) (n+1)
   |Declrt2(t1,s) -> (((s,t1,None)::(find_remove env s [])),tenv,(((t n),Unit)::tequals),n)
   |Formu(p,e) ->
     begin
-      match e with
-      |Nil ->
+      match expr_tval e env tenv (((t n),Unit)::tequals) (n+1) with
+      |(env1,tenv1,tequals1,n1) ->
+        (* Format.printf "%i" n1; *)
+        (* print_tequals tequals1; *)
         begin
-          match expr_tval e env tenv ((t (n+2),Any)::((t n),Unit)::tequals) (n+1) with
-          |(env1,tenv1,tequals1,n1) ->
-            begin
-              match makeEnvFormu p (n+1) env1 tequals1 with
-              |(env2,n2) -> (env2,tenv1,tequals1,n1)
-            end
-        end
-      |_ ->
-        begin
-          match expr_tval e env tenv (((t n),Unit)::tequals) (n+1) with
-          |(env1,tenv1,tequals1,n1) ->
-            (* Format.printf "%i" n1; *)
-            (* print_tequals tequals1; *)
-            begin
-              match makeEnvFormu p (n+1) env1 tequals1 with
-              |(env2,n2) ->
-                (* Format.printf "%i" n2; *)
-                (env2,tenv1,tequals1,n1)
-            end
+          match makeEnvFormu p (n+1) env1 tequals1 with
+          |(env2,n2) ->
+            (* Format.printf "%i" n2; *)
+            (env2,tenv1,tequals1,n1)
         end
     end
   |Formu2(e1,e2) ->
@@ -1013,7 +1007,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
   |MakeIns(s) -> (env,tenv,(((t n),(MT s))::tequals),n)
   |UseIns1(e1,s) ->
     let (env1,tenv1,tequals1,n1) = expr_tval e1 env tenv tequals (n+1) in
-    let structEnv = find_structEnv tenv1 tequals1 (n+1) in
+    let structEnv = find_structEnv tenv1 tequals1 (t (n+1)) in
     let t1 = find_type structEnv s in
     (env1,tenv1,(((t n),t1)::tequals1),n1)
     (*
@@ -1032,25 +1026,20 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
     
   |UseIns2(e1,e2) ->
     begin
-      match expr_tval e1 env tenv (((t (n+1)),String)::tequals) (n+1) with
-      |(env1,tenv1,tequals1,n1) ->
+      match expr_eval e1 env tenv with
+      |(String(s1),env1,tenv1) ->
         begin
-          match expr_tval e2 env1 tenv1 (((t (n1+1)),String)::tequals1) (n1+1) with
-          |(env2,tenv2,tequals2,n2) ->
-            begin
-              match expr_eval e1 env tenv with
-              |(String(s1),env3,tenv3) ->
-                begin
-                  match expr_eval e2 env3 tenv3 with
-                  |(String(s2),env4,tenv4) ->
-                    (* Format.printf "%s" (split_dp s1); *)
-                    expr_tval (UseIns1(Var(split_dp s1),s2)) env2 tenv2 (((t n),(t n2))::tequals2) n2
-                  |_ -> raise Error
-                end
-              |_ -> raise Error
-            end
+          match expr_eval e2 env1 tenv1 with
+          |(String(s2),env2,tenv2) ->
+            let t1 = find_type env2 (split_dp s1) in
+            let env3 = find_structEnv tenv2 tequals t1 in
+            let t2 = find_type env3 (split_dp s2) in
+            (env2,tenv2,(((t n),t2)::tequals),n)
+          |_ -> raise Error
         end
+      |_ -> raise Error
     end
+    
   |Block(elist) ->
     (*
     Format.printf "@[==========================@.";
@@ -1091,8 +1080,8 @@ and pat_tval (p:Program.p) (env:Program.env) (tenv:Program.tenv) (tequals:Progra
   |Double d -> (env,tenv,(((t n),Double)::tequals),n)
   |Bool b -> (env,tenv,(((t n),Bool)::tequals),n)
   |String s -> (env,tenv,(((t n),String)::tequals),n)
-  |Var s -> (env,tenv,(((t n),(find_type env s))::tequals),n)
-  |Nil -> (env,tenv,(((t n),(List (t (n+1))))::tequals),n)
+  |Var s -> (env,tenv,(((t n),(find_type env s))::tequals),n+1)
+  |Nil -> (env,tenv,(((t n),(List (Any)))::tequals),n)
   |Wild -> (env,tenv,(((t n),Any)::tequals),n)
   |Cons(p1,p2) ->
     begin
@@ -1163,11 +1152,11 @@ and find_type (env:Program.env) (s:string) :Program.t =
     if String.equal s s1 then t else find_type env1 s
   |[] -> raise NoValueError
 
-and find_structEnv (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.env =
-  match find_type_tequals (t n) tequals with
-  |t1 -> (* Format.printf ("%a,%a") (fun _ -> print_type) t1 (fun _ -> print_tequals) tequals; *)
+and find_structEnv (tenv:Program.tenv) (tequals:Program.tequals) (t1:Program.t) :Program.env =
+  match find_type_tequals t1 tequals with
+  |t2 -> (* Format.printf ("%a,%a") (fun _ -> print_type) t1 (fun _ -> print_tequals) tequals; *)
     begin
-      match List.assoc t1 tenv with
+      match List.assoc t2 tenv with
       |Struct(structEnv) -> structEnv
       |_ -> raise Error
     end
@@ -1258,7 +1247,11 @@ and makeEnvFormu (p:Program.p) (n:int) (env:Program.env) (tequals:Program.tequal
       |p1::plist1 ->
         begin
           match makeEnvFormu p1 (n+1) env tequals  with
-          |(env1,n1) -> makeEnvFormu (Tuple plist1) n1 env1 tequals
+          |(env1,n1) ->
+            (* print_env env1; *)
+            (* print_tequals tequals; *)
+            (* Format.printf "%i" n1; *)
+            makeEnvFormu (Tuple plist1) n1 env1 tequals
         end
       |_ -> raise Error
     end
@@ -1736,7 +1729,10 @@ and add_type (t2:Program.t) (n:int) (fs:Program.tequals) :(Program.t * int * Pro
 (* envのT(s)を具体的なtypeに直す *)
 let rec arrange_env (env:Program.env) (solutions:Program.tequals) (fenv:Program.env) :Program.env =
   match env with
-  |(s,t,v)::env1 -> arrange_env env1 solutions ((s,(find_type_solutions t solutions),v)::fenv)
+  |(s,t,v)::env1 ->
+    (* print_env env; *)
+    (* print_tequals solutions; *)
+    arrange_env env1 solutions ((s,(find_type_solutions t solutions),v)::fenv)
   |[] -> fenv
 
 and find_type_solutions (t:Program.t) (solutions:Program.tequals) :Program.t =
