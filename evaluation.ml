@@ -67,7 +67,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
           |UseIns2(e3,e4) ->
             begin
               match splitSF2 e1 [] env tenv with
-              |(ins_n,fids) -> (Null,(updateFids ins_n fids v1 env1),tenv1)
+              |(ins_n,fids) -> (Null,(updateFids (split_dp ins_n) fids v1 env1),tenv1)
             end
           |_ -> raise Error
         end
@@ -286,6 +286,12 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
             end
           |_ -> raise Error
         end
+      |(Struct(s0,structEnv),env1,tenv1) ->
+        begin
+          match expr_eval e2 env1 tenv1 with
+          |((String s2),env2,tenv2) -> ((find structEnv (split_dp s2)),env2,tenv2)
+          |_ -> raise Error
+        end
       |_ -> raise Error
     end
   |Block(elist) ->
@@ -411,7 +417,7 @@ and splitSF2 (e:Program.e) (fids:string list) (env:Program.env) (tenv:Program.te
   |UseIns2(e1,e2) ->
     begin
       match expr_eval e2 env tenv with
-      |String f_n,env1,tenv1 -> splitSF2 e1 (f_n::fids) env1 tenv1
+      |String f_n,env1,tenv1 -> splitSF2 e1 ((split_dp f_n)::fids) env1 tenv1
       |_ -> raise Error
     end
   |_ ->
@@ -820,7 +826,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
             begin
               match splitSF2 e1 [] env tenv with
               |(ins_n,fids) ->
-                let (env2,tequals2) = updateFids_tval ins_n fids (n+1) env1 tenv1 tequals1 in
+                let (env2,tequals2) = updateFids_tval (split_dp ins_n) fids (n+1) env1 tenv1 tequals1 in
                 (env2,tenv1,tequals2,n1)
             end
           |_ -> raise Error
@@ -1034,6 +1040,14 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
             let t1 = find_type env2 (split_dp s1) in
             let env3 = find_structEnv tenv2 tequals t1 in
             let t2 = find_type env3 (split_dp s2) in
+            (env2,tenv2,(((t n),t2)::tequals),n)
+          |_ -> raise Error
+        end
+      |(Struct(s0,env0),env1,tenv1) ->
+        begin
+          match expr_eval e2 env1 tenv1 with
+          |(String(s2),env2,tenv2) ->
+            let t2 = find_type env0 (split_dp s2) in
             (env2,tenv2,(((t n),t2)::tequals),n)
           |_ -> raise Error
         end
