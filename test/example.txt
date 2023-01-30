@@ -52,6 +52,7 @@ for a,b in [ [1,2] , [3,4] ],[ [5,6],[7,8] ]:
       c+d
 */
 
+/*
 struct Struct1 :
    int : x
    int : y
@@ -62,6 +63,7 @@ struct Struct2 :
 z1=Struct2()
 "z1".."z".."x"=1
 a="z1".."z".."x"
+*/
 
 /*
 struct Struct1 :
@@ -127,7 +129,7 @@ z (3)
 
 //再帰関数の使用
 /*
-def function1 (x,y) :
+def function1 (int: x,int: y) :
    z=x+y
    if z<10 :
      function1 (z) (5)
@@ -137,20 +139,9 @@ def function1 (x,y) :
 z=function1 (2) (3)
 */
 
-//再帰関数の使用(Error)
-/*
-def function1 (x) :
-   if x<10 :
-     function1 (x) (5)
-   else :
-     x
-
-z=function1 (2) (3)
-*/
-
 //定義後の関数を使用
 /*
-def function0 (x) :
+def function0 (int: x) :
    x
 
 def function1 (int: x,int: y) :
@@ -177,18 +168,18 @@ def function1 (int: x,int: y) :
 /*
 def function0 (int: x,int: y) :
    return  x+y
-*/
 
-//z=function0(1) (2)
+z=function0(1) (2)
+*/
 
 //引数が一つの関数の使用
 /*
-def function0 (x) :
+def function0 (int:x) :
   return x
 
 function0(1)
+x
 */
-
 
 /*
 i=0
@@ -248,7 +239,7 @@ match l :
 x
 */
 
-/*
+/*x
 t=(1,2,3)
 match t :
   |(a,b,_) -> 0
@@ -293,7 +284,7 @@ else :
 //2バイト文字に対応していないからエラー
 //i += "回"
 
-//[1,2]
+//l=[[1]]
 //l=[ [1,2] , [3,4,5] ]
 //l+= [6,7,8,9]
 //lt=[ ("name",1) , ("age",2) , ("id",3) ]
@@ -322,3 +313,9 @@ else :
 //x=1
 //x="string"
 //1
+
+/*
+z=[(1,[(2,3),(5,6)]),(4,[])]
+l1=[(1,2),(3,4)]
+z.- (_,(2,x))
+*/
