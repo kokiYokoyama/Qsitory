@@ -1152,8 +1152,8 @@ and pat_tval (p:Program.p) (env:Program.env) (tenv:Program.tenv) (tequals:Progra
   |Bool b -> (env,tenv,(((t n),Bool)::tequals),n)
   |String s -> (env,tenv,(((t n),String)::tequals),n)
   |Var s -> (env,tenv,(((t n),(find_type env s))::tequals),n+1)
-  |Nil -> (env,tenv,(((t n),(List (Any)))::tequals),n)
-  |Wild -> (env,tenv,(((t n),Any)::tequals),n)
+  |Nil -> (env,tenv,(((t n),(List (a n)))::tequals),n)
+  |Wild -> (env,tenv,(((t n),(a n))::tequals),n)
   |Cons(p1,p2) ->
     begin
       match pat_tval p1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) with
@@ -1183,6 +1183,7 @@ and equal_type (t1:Program.t) (t2:Program.t) :bool =
   match t1,t2 with
   |T s1,T s2 when s1 = s2 -> true
   |A s1,t -> true
+  |t,A s1 -> true
   |Int,Int -> true
   |Double,Double -> true
   |Bool,Bool -> true
