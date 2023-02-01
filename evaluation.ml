@@ -1051,7 +1051,13 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
       match expr_tval e2 env tenv tequals (n+1) with
       |(env2,tenv2,tequals2,n2) ->
         (* Format.printf "%i" n2; *)
-        expr_tval e1 env2 tenv2 ((t (n2+1), Fun(t (n+1), t n))::tequals2) (n2+1)
+        begin
+          try
+            expr_tval e1 env2 tenv2 ((t (n2+1), Fun(t (n+1), t n))::tequals2) (n2+1)
+          with
+          (* NoValueErrorが出るということは再帰関数以外ないため *)
+          |NoValueError -> (env2,tenv2,tequals2,(n2+1))
+        end
     end
 (*    
     begin

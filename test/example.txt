@@ -89,9 +89,9 @@ a.x=1
 b="a".."x"
 */
 
-/*
 //return文により強制終了がされているか
-def function1 (x) :
+/*
+def function1 (int: x) :
    if x>1 :
      return x
    else:
@@ -102,25 +102,25 @@ function1 (2)
 
 //相互再帰関数の使用
 /*
-def f (x) :
+def f (int: x) :
    if x<3 :
       1
    else:
       g (x/2)
 
-def g (x) :
+def g (int: x) :
    f (x)
 
 g (10)
 */
 
-/*
 //定義前の関数を使用
-def function1 (x,y) :
+/*
+def function1 (int: x,int: y) :
    z=x+y
    function0 (z)
 
-def function0 (x) :
+def function0 (int: x) :
    x
 
 z=function1 (2)
@@ -230,13 +230,15 @@ for a,b,c in [1,2,3],[4,5,6],[7,8,9]:
    z+=(a+b+c)
 */
 
+/*
 x="string"
 l = [1,2,3]
 match l :
  |[] -> 0
  |[x] -> 1
  |[x,y,z] -> 2
-x
+
+*/
 
 /*
 t=(1,2,3)
@@ -273,7 +275,7 @@ else :
 //l = [1,2,3]
 //l .-= 2
 
-l = [ (1,2),(3,4) ]
+//l = [ (1,2),(3,4) ]
 //l .-= (_,2)
 
 //i = 1
