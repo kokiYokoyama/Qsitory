@@ -55,59 +55,32 @@ let parse str =
      doIfDebug "LEXING" (F.printf "@[%s@.") !tokenMemo;
      F.printf "@[\n\nUnknown Parse error: %S@." (Lexing.lexeme lexbuf);
      exit 0
-                          
-let rec main_tval (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) =
-  match ee with
-  |[] -> tenv
-  |e::ee1 ->
-    begin
-      match expr_tval e env tenv [] 0 with
-      |(env1,tenv1,tequals,n) -> (* print_tequals tequals; *)
-        begin
-          match unif tequals [] with
-          |Some solutions ->
-            print_tequals solutions;
-            main_tval ee1 (arrange_env env1 solutions []) tenv1
-          |None -> raise TypeError
-        end
-    end
 
 let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) (an:int) =
   (* Format.printf "%a\n\n" (fun _-> print_env) env; *)
   match ee with
   |[] -> Format.printf "finish"
   |e::ee1 ->
+    let (tequals,n) = expr_tval e env tenv [] 0 in
+    (* Format.printf "@[%a\n@." P.pp_tequals tequals; *)
     begin
-      match expr_tval e env tenv [] 0 with
-      |(env1,tenv1,tequals,n) ->
-        (* Format.printf "@[%a\n@." (fun _-> print_env) env1; *)
-        (* Format.printf "@[%a\n@." P.pp_tequals tequals; *)
+      match unif tequals [] with
+      |Some solutions ->
+        (* Format.printf "%a\n" (fun _-> print_tequals) solutions; *)
+        let (solutions1,an1) = arrange_solutions solutions an in
+        (* Format.printf "%a\n\n" (fun _ -> print_tequals) solutions1; *)
+        let env1 = arrange_env env solutions1 [] in
+        (* Format.printf "%a\n\n" (fun _-> print_env) env2; *)
+        let (v,env2,tenv1) = expr_eval e env1 tenv in
+        (* Format.printf "%a\n" (fun _ -> print_evalResult) (v,env3,tenv2); *)
         begin
-          match unif tequals [] with
-          |Some solutions ->
-            (* Format.printf "%a\n" (fun _-> print_tequals) solutions; *)
-            begin
-              match arrange_solutions solutions an with
-              |(solutions1,an1) ->
-                (* Format.printf "%a\n\n" (fun _ -> print_tequals) solutions1; *)
-                begin
-                  match arrange_env env1 solutions1 [] with
-                  |env2 -> (* Format.printf "%a\n\n" (fun _-> print_env) env2; *)
-                    begin
-                      match expr_eval e env2 tenv1 with
-                      |(v,env3,tenv2) ->
-                        (* Format.printf "%a\n" (fun _ -> print_evalResult) (v,env3,tenv2); *)
-                        begin
-                          match ee1 with
-                          |[] -> print_evalResult (v,env3,tenv2)
-                          |_ -> main_interpreter ee1 env3 tenv2 an1
-                        end
-                    end
-                end
-            end
-          |None -> raise TypeError
+          match ee1 with
+          |[] -> print_evalResult (v,env2,tenv1)
+          |_ -> main_interpreter ee1 env2 tenv1 an1
         end
+      |None -> raise TypeError
     end
+    
     
 let interpreter filename =
   F.printf "@[*****************************@.";

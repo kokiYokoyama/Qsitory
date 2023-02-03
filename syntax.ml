@@ -1,5 +1,5 @@
 exception Error
-exception Error6
+exception Error6        
 module Program = struct
   (* Definition------------------------------------------------------------*)
 
@@ -15,6 +15,8 @@ module Program = struct
          | List of t | Tuple of t list
          | Fun of t * t
          | Struct of env
+         | Operate of op * t * t
+         | Return of t
   (* value *)       
   and v = Int of int | Double of float | Bool of bool
         | String of string | Null | Nil
@@ -47,7 +49,7 @@ module Program = struct
 
   (* other *)
   type evalResult =(v * env * tenv )
-  type tvalResult =(env * tenv * tequals * int )
+  type tvalResult =(tequals * int )
   type patternop = Some of env | None
 
 end;;
@@ -124,6 +126,8 @@ and print_type (t:Program.t) =
   |Fun(t1,t2) -> Format.printf "Fun(%a->%a)" (fun _ ->print_type) t1 (fun _ ->print_type) t2
   |Struct list -> Format.printf "[%a]" ( fun _ -> type_struct_print ) list
   |Any -> Format.printf "Any"
+  |Operate(op,t1,t2) -> Format.printf "Operate(%a %a %a)" (fun _ -> print_type) t1 (fun _ ->print_op) op (fun _ -> print_type) t2
+  |Return t1 -> Format.printf "Return(%a)" (fun _ -> print_type) t1
 
 and type_tuple_print list =
   match list with

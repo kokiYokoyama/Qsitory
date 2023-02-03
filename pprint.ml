@@ -43,7 +43,9 @@ and pp_type fmt (t:Program.t) =
   | Tuple list -> F.fprintf fmt "Tuple(%a)" (pp_list0 pp_type) list
   | Fun(t1,t2) -> F.fprintf fmt "%a->%a" pp_type t1 pp_type t2
   | Struct list -> F.fprintf fmt "%a" (pp_list0 pp_type_struct1) list
-  | Any -> pp_string fmt "Any" 
+  | Any -> pp_string fmt "Any"
+  | Operate(op,t1,t2) -> F.fprintf fmt "Operate(%a %a %a)" pp_type t1 pp_op op pp_type t2
+  | Return t1 -> F.fprintf fmt "Return(%a)" pp_type t1
 
 and pp_type_struct1 fmt (s,t,_) = pp_tuple2 pp_string pp_type fmt (s,t)
          
