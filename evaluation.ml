@@ -1264,26 +1264,6 @@ and makeEnvMatch2 (p:Program.p) (t:Program.t) (env:Program.env) :Program.env =
  *       |_ -> raise Error
  *     end
  *   |_ -> raise Error *)
-
-and updateFids_tval (ins_n:string) (fids:string list) (n:int) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) :(Program.env * Program.tequals) =
-  match find_type env ins_n with
-  |MT s ->
-    begin
-      match List.assoc ((MT(s)):Program.t) tenv with
-      |Struct(structEnv) ->
-        begin
-          match fids with
-          |fi_n::[] -> ((ins_n,(MT s),Some (Struct(s,((fi_n,(find_type structEnv fi_n ),(find_op structEnv fi_n))::(find_remove structEnv fi_n [])))))::(find_remove env ins_n []),(((t n),(find_type structEnv fi_n))::tequals))
-          |fi_n::fids1 ->
-            begin
-              match updateFids_tval fi_n fids1 n structEnv tenv tequals with
-              |(field1,tequals1) -> (((ins_n,(MT s),Some (Struct(s,field1)))::(find_remove structEnv ins_n [])),tequals1)
-            end
-          |_ -> raise Error
-        end
-      |_ -> raise Error
-    end
-  |_ ->raise Error
         
 and secondBlock_tval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) (n0:int) :Program.tvalResult =
   match elist with
@@ -1325,10 +1305,6 @@ and secondForDict_tval (paraList:string list) (tlist:Program.t list) (env:Progra
     let env1 =  makeEnvMatch (Var(s1)) t1 env tequals in
     secondForDict_tval paraList1 tlist1 env1 tequals
   |_ -> raise Error
-
-and makeStructTenv (e:Program.e) :Program.env =
-  match expr_eval e [] [] with
-  |(v,env,tenv) -> env
 
 (* Unif------------------------------------------------------------------- *)
 
@@ -1644,7 +1620,61 @@ and tuple_changelist (list:Program.t list) (s1:string) (t2:Program.t) :Program.t
     end
   |_ -> raise Error
 
-let a (tn:int) :Program.t = A ("A" ^ string_of_int(tn))
+(* arrange_EnvAndTenv------------------------------------------------------*)
+
+and arrange_EnvAndTenv (e:Program.e) (solutions:Program.tequals) (env:Program.env) (tenv:Program.tenv) :(Program.env * Program.tenv) =
+  match e with
+  |Declrt1(t,s,e1) -> (((s,t,None)::(find_remove env s [])),tenv)
+
+  |Declrt2(t,s) -> (((s,t,None)::(find_remove env s [])),tenv)
+
+  |Formu(p,e1) -> ((makeEnvMatch p (t 1) env solutions),tenv)
+
+  |Formu2(e1,e2) ->
+    begin
+      match e1 with
+      |UseIns1(e3,fi_n) ->
+        let (ins_n,fids) = splitSF e1 [] in
+        ((updateFids_tval ins_n fids (t 1) env tenv solutions),tenv)
+        
+      |UseIns2(e3,e4) ->
+        let (ins_n,fids) = splitSF e1 [] in
+        ((updateFids_tval ins_n fids (t 1) env tenv solutions),tenv)
+      
+      |_ -> raise Error
+    end
+
+  |Dstruct(s,e) ->
+    let structData = makeStructTenv e in
+    (env,(((MT s),Struct(structData))::tenv))
+
+  |_ -> (env,tenv)
+
+(* arrange_EnvAndTenv's functions **************************************** *)
+
+and updateFids_tval (ins_n:string) (fids:string list) (t1:Program.t) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) :Program.env =
+  match find_type env ins_n with
+  |MT s ->
+    begin
+      match List.assoc ((MT(s)):Program.t) tenv with
+      |Struct(structEnv) ->
+        begin
+          match fids with
+          |fi_n::[] -> ((ins_n,(MT s),Some (Struct(s,((fi_n,(find_type structEnv fi_n ),(find_op structEnv fi_n))::(find_remove structEnv fi_n [])))))::(find_remove env ins_n []))
+          |fi_n::fids1 ->
+              let field1 = updateFids_tval fi_n fids1 t1 structEnv tenv tequals in
+              (((ins_n,(MT s),Some (Struct(s,field1)))::(find_remove structEnv ins_n [])))
+          |_ -> raise Error
+        end
+      |_ -> raise Error
+    end
+  |_ ->raise Error
+
+and makeStructTenv (e:Program.e) :Program.env =
+  match expr_eval e [] [] with
+  |(v,env,tenv) -> env
+
+(* *********************************************************************** *)
 
 let rec arrange_solutions (solutions:Program.tequals) (n:int) :(Program.tequals * int) =
   match solutions with
@@ -1679,7 +1709,7 @@ and add_type (t2:Program.t) (n:int) (fs:Program.tequals) :(Program.t * int * Pro
   |_ -> (t2,n,fs)
 
 (* envのT(s)を具体的なtypeに直す *)
-let rec arrange_env (env:Program.env) (solutions:Program.tequals) (fenv:Program.env) :Program.env =
+and arrange_env (env:Program.env) (solutions:Program.tequals) (fenv:Program.env) :Program.env =
   match env with
   |(s,t,v)::env1 ->
     (* print_env env; *)
