@@ -879,14 +879,9 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
     (((t (n+1),Operate((changeaop_to_op aop),(t (n+1)),(t (n1+1))))::tequals2),n2)
 
   |SubFormu(e,p) ->
-    let (tequals1,n1) = pat_tval p env tenv (((t n),Unit)::tequals) (n+1) in
-    begin
-      try
-        let (tequals2,n2) = expr_tval e env tenv tequals1 (n1+1) in
-        (((t (n1+1),Operate((Sub2:Program.op),(t (n+1)),(t (n1+1))))::tequals2),n2)
-      with
-      |NoValueError -> raise Error
-    end
+    let (tequals1,n1) = expr_tval e env tenv (((t n),Unit)::tequals) (n+1) in
+    let (tequals2,n2) = pat_tval p env tenv tequals1 (n1+1) in
+    (((t (n+1),Operate((Sub2:Program.op),(t (n+1)),(t (n1+1))))::tequals2),n2)
     
   |Operate(op,e1,e2) -> 
     let (tequals1,n1) = expr_tval e1 env tenv tequals (n+1) in
