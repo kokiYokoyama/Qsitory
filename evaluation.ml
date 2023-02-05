@@ -9,6 +9,8 @@ exception NoSourcetoSubError
 exception NoMatchPatternError
 exception NotMatchExpressionError
 exception OperateTypeError
+exception NowOperateTypeError
+        
 open Syntax
 open Tools
 open Pprint
@@ -404,18 +406,18 @@ and patternMatchFormu (p:Program.p) (v:Program.v) (env:Program.env) :Program.pat
   |Wild,v -> Some env
   |Cons(p1,p2),Cons(v1,v2) ->
     begin
-      match patternMatch p1 v1 env with
-      |Some env1 -> patternMatch p2 v2 env1
+      match patternMatchFormu p1 v1 env with
+      |Some env1 -> patternMatchFormu p2 v2 env1
       |None -> None
     end
   |Tuple plist,Tuple vlist ->
     begin
       match plist,vlist with
-      |p1::[],v1::[] -> patternMatch p1 v1 env
+      |p1::[],v1::[] -> patternMatchFormu p1 v1 env
       |p1::plist1,v1::vlist1 ->
          begin
-           match patternMatch p1 v1 env with
-           |Some env1 -> patternMatch (Tuple plist1) (Tuple vlist1) env1
+           match patternMatchFormu p1 v1 env with
+           |Some env1 -> patternMatchFormu (Tuple plist1) (Tuple vlist1) env1
            |None -> raise Error
          end
       |_ -> raise Error
@@ -838,7 +840,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
 
   |Null -> ((((t n),(t (n+1)))::tequals),n+1)
 
-  |Nil -> ((((t n),(List(a (-n))))::tequals),n)
+  |Nil -> ((((t n),(List(a (n))))::tequals),n)
 
   |Cons(e1,e2) ->
     let (tequals1,n1) =expr_tval e1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) in
@@ -871,16 +873,11 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
       |NoValueError -> (tequals1,n1)
     end
     
-  |AOperate(aop,e1,e2) -> 
-    let (tequals1,n1) = expr_tval e2 env tenv (((t n),Unit)::tequals) (n+1) in 
-    begin
-      try
-        let (tequals2,n2) = expr_tval e1 env tenv tequals1 (n1+1) in
-        (((t (n1+1),Operate((changeaop_to_op aop),(t (n+1)),(t (n1+1))))::tequals2),n2)
-      with
-      |NoValueError -> raise Error
-    end
-    
+  |AOperate(aop,e1,e2) ->
+    let (tequals1,n1) = expr_tval e1 env tenv (((t n),Unit)::tequals) (n+1) in
+    let (tequals2,n2) = expr_tval e2 env tenv tequals1 (n1+1) in
+    (((t (n+1),Operate((changeaop_to_op aop),(t (n+1)),(t (n1+1))))::tequals2),n2)
+
   |SubFormu(e,p) ->
     let (tequals1,n1) = pat_tval p env tenv (((t n),Unit)::tequals) (n+1) in
     begin
@@ -1312,13 +1309,23 @@ and unif (tequals:Program.tequals) (solutions:Program.tequals) =
   (* Format.printf "%a" (fun _ -> print_tequals) tequals; *)
   (* Format.printf "%a\n" (fun _ -> print_tequals) solutions; *)
   match tequals with
-  |[] -> Some (List.map (fun (t1,t2) -> (t1,operate_unif t2)) solutions)
+  |[] -> Some solutions
 
   |(Int,Int)::tequals1 -> unif tequals1 solutions
   |(Double,Double)::tequals1 -> unif tequals1 solutions
   |(Bool,Bool)::tequals1 -> unif tequals1 solutions
   |(String,String)::tequals1 -> unif tequals1 solutions
   |(Unit,Unit)::tequals1 -> unif tequals1 solutions
+
+  |(t,Operate(op,t1,t2))::tequals1 ->
+    begin
+      try
+        let t3 = operateType t1 t2 op in
+        unif ((t,t3)::tequals1) solutions
+      with
+      |NowOperateTypeError -> unif (List.rev tequals) solutions
+      |OperateTypeError -> None
+    end
 
   |(T s1,T s2)::tequals1 -> unif (changeTequals s1 ((T s2):Program.t) tequals1) ((T s1,T s2)::(changeSolutions s1 ((T s2):Program.t) solutions))
   |(T s1,t2)::tequals1 -> unif (changeTequals s1 t2 tequals1) ((T s1,t2)::(changeSolutions s1 t2 solutions))
@@ -1403,6 +1410,7 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
   match op with
   |Add -> 
     begin
+      (* Format.printf "(%a,%a)" pp_type t1 pp_type t2; *)
       match t1,t2 with
       |Int,Int -> Int
       |Int,Double -> Double
@@ -1417,13 +1425,14 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |List t3,t4 ->
         begin
           match t4 with
-          |List t5 when (equal_type t3 t5 ) -> List (List t5)
+          |List t5 when (equal_type t3 t5 ) -> List (List t3)
           |Tuple tlist when (equal_type t3 (Tuple tlist)) -> List (Tuple tlist)
-                               
+           
           |_ when (equal_type t3 t4 ) -> List t4
           |_ -> raise OperateTypeError
         end
-      |Tuple tlist,t3 -> Tuple (t2::tlist)
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |Sub ->
@@ -1435,6 +1444,8 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |Int,Double -> Double
       |Double,Double -> Double
       |Double,Int -> Double
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |Mul ->
@@ -1446,6 +1457,8 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |Int,Double -> Double
       |Double,Double -> Double
       |Double,Int -> Double
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |Div ->
@@ -1457,6 +1470,8 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |Int,Double -> Double
       |Double,Double -> Double
       |Double,Int -> Double
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |Mod ->
@@ -1465,6 +1480,8 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |Any,t -> t
       |t,Any -> t
       |Int,Int -> Int
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |Lt ->  
@@ -1476,6 +1493,8 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |Int,Double -> Bool
       |Double,Double -> Bool
       |Double,Int -> Bool
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |LtEq ->
@@ -1498,6 +1517,8 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |Int,Double -> Bool
       |Double,Double -> Bool
       |Double,Int -> Bool
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |GtEq ->
@@ -1509,6 +1530,8 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |Int,Double -> Bool
       |Double,Double -> Bool
       |Double,Int -> Bool
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |CEq ->
@@ -1521,6 +1544,8 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |Double,Double -> Bool
       |Double,Int -> Bool
       |String,String -> Bool
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |And ->
@@ -1529,6 +1554,8 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |Any,t -> Bool
       |t,Any -> Bool
       |Bool,Bool -> Bool
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |Or ->
@@ -1537,6 +1564,8 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |Any,t -> Bool
       |t,Any -> Bool
       |Bool,Bool -> Bool
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise OperateTypeError
     end
   |Sub2 ->
@@ -1551,14 +1580,15 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
       |List t3,t4 ->
         begin
           match t4 with
-          |List t5 when (equal_type t3 (List t5)) -> List (List t5)
+          |List t5 when (equal_type t3 (List t5)) -> List (List t3)
           |Tuple tlist when (equal_type t3 (Tuple (tlist))) -> List (Tuple (tlist))
                                
           |_ when (equal_type t3 t4) -> List t4
           |_ -> raise OperateTypeError
         end
-
-      |Tuple tlist,t -> Tuple (remove_list t tlist [])
+       
+      |T s,t -> raise NowOperateTypeError
+      |t,T s -> raise NowOperateTypeError
       |_ -> raise Error
     end
 
@@ -1643,6 +1673,14 @@ and arrange_EnvAndTenv (e:Program.e) (solutions:Program.tequals) (env:Program.en
       
       |_ -> raise Error
     end
+
+  |AOperate(aop,e1,e2) ->
+    begin
+      match e1 with
+      |Var s -> (((s,(find_type_tequals (t 1) solutions),(find_op env s))::(find_remove env s [])),tenv)
+      |_ -> raise Error
+    end
+    
 
   |Dstruct(s,e) ->
     let structData = makeStructTenv e in
