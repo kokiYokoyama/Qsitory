@@ -61,7 +61,7 @@ let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.te
   match ee with
   |[] -> Format.printf "finish"
   |e::ee1 ->
-    let (tequals,n) = expr_tval e env tenv [] 0 in
+    let (tequals,n) = expr_tval e [env] tenv [] 0 in
     (* Format.printf "@[%a\n@." P.pp_tequals tequals; *)
     begin
       match unif tequals [] with

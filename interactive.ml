@@ -107,7 +107,7 @@ let interpreter () =
        doIfDebug "PARSING" (F.printf "@[Expr: %a@." (pp_list "" "\n" P.pp_expr)) ee;
        let valueOpt = ref None in
        List.iter (fun e ->
-           let (tequals,n) = Evaluation.expr_tval e sc.env sc.tenv [] 0 in
+           let (tequals,n) = Evaluation.expr_tval e [sc.env] sc.tenv [] 0 in
            match Evaluation.unif tequals [] with
            |Some solutions ->
              let (env1,tenv1) = Evaluation.arrange_EnvAndTenv e solutions sc.env sc.tenv in
