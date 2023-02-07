@@ -188,12 +188,10 @@ def function1 (int: x,int: y) :
 
 //(a,b,c)=function1(2) (3)
 
-/*
 def function0 (int: x,int: y) :
    return  x+y
 
 z=function0(1) (2)
-*/
 
 //引数が一つの関数の使用
 /*
