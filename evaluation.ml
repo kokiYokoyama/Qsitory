@@ -412,6 +412,7 @@ and patternMatchFormu (p:Program.p) (v:Program.v) (env:Program.env) :Program.pat
   |Nil,Nil -> Some env
   |Wild,v -> Some env
   |Cons(p1,p2),Cons(v1,v2) ->
+    print_endline "XXXXXXXXXXXXXXXXXXXXXX";
     begin
       match patternMatchFormu p1 v1 env with
       |Some env1 -> patternMatchFormu p2 v2 env1

@@ -75,6 +75,7 @@
 %token ARROW    // "->"
 %token WILD     // '_'
 %token COLON    // ':'
+%token COLCOL   // '::' 
 %token SEMICOLON// ';'
 %token DOT      // '.'
 %token DOTDOT   // ".."
@@ -94,8 +95,9 @@
             
 // 結合力(優先度が低い順)
 %left AND OR
-%nonassoc NOT         
+%nonassoc NOT
 %left EQ LT LE GT GE PLUSEQ MINUSEQ MULEQ DIVEQ EQEQ NEQ
+%right COLCOL 
 %left PLUS MINUS
 %right ARROW
 %left AST
@@ -184,6 +186,12 @@ patexp:
   | NOT pe = patexp { packExp @@ P.Not (unpackExp pe) }
 /// Lists
   | NIL { packPatExp pNil eNil }
+  | q1 = patexp; COLCOL; q2 = patexp
+        {
+         let pOpt = try Some (pCons(unpackPat q1,unpackPat q2)) with _ -> None in 
+         let eOpt = try Some (eCons(unpackExp q1,unpackExp q2)) with _ -> None in 
+         (pOpt,eOpt)
+        }
   | LBRACKET; qq = separated_list(COMMA,patexp); RBRACKET
         {
          let pOpt = try Some (List.fold_right (fun q p:pat -> P.Cons(unpackPat q,p)) qq pNil) with _ -> None in 
