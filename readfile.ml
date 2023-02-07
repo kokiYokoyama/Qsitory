@@ -66,12 +66,13 @@ let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.te
     begin
       match unif tequals [] with
       |Some solutions -> (* print_tequals solutions; *)
+        Format.printf "@[%a\n@." P.pp_expr e;
         let (env1,tenv1) = arrange_EnvAndTenv e solutions env tenv in
-        (* Format.printf "@[[%a]\n@." P.pp_env env1; *)
+        Format.printf "@[[%a]\n@." P.pp_env env1;
         (* Format.printf "@[[%a]\n@." P.pp_tenv tenv1; *)
         
         let (v,env2,tenv2) = expr_eval e env1 tenv1 in
-        (* Format.printf "%a\n" (fun _ -> print_evalResult) (v,env3,tenv2); *)
+        (* Format.printf "%a\n" (fun _ -> print_evalResult) (v,env2,tenv2); *)
         begin
           match ee1 with
           |[] -> print_evalResult (v,env2,tenv2)

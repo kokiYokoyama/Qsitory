@@ -27,7 +27,7 @@ def judge(int: x) :
    if x>0 :
      return x
    else :
-     return "string"
+     return 1
 
 judge(1)
 */
@@ -184,9 +184,9 @@ x=1+x
 //引数が複数の関数の使用(Error?)
 def function1 (int: x,int: y) :
    z=x+y
-   return (x,y)
+   return (x,y,z)
 
-//(a,b,c)=function1(2) (3)
+(a,b,c)=function1(2) (3)
 
 def function0 (int: x,int: y) :
    return  x+y
@@ -346,4 +346,10 @@ else :
 z=[(1,[(2,3),(5,6)]),(4,[])]
 l1=[(1,2),(3,4)]
 z.- (_,(2,x))
+*/
+
+/*
+for a in [1,2]:
+   b="string"
+   a+a
 */
