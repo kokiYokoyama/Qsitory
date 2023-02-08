@@ -90,7 +90,6 @@ z1=Struct2()
 a="z1".."z".."x"
 */
 
-/*
 struct Struct1 :
    int : x
    int : y
@@ -101,7 +100,6 @@ struct Struct2 :
 z1=Struct2()
 z1.z.x=1
 a=z1.z.x
-*/
 
 /*
 struct Struct1 :
@@ -182,23 +180,27 @@ x=1+x
 */
 
 //引数が複数の関数の使用(Error?)
+/*
 def function1 (int: x,int: y) :
    z=x+y
    return (x,y,z)
 
 (a,b,c)=function1(2) (3)
+*/
 
+/*
 def function0 (int: x,int: y) :
    return  x+y
 
 z=function0(1) (2)
+*/
 
 //引数が一つの関数の使用
 /*
 def function0 (int:x) :
   return x
 
-//function0(1)
+function0(1)
 */
 
 /*
@@ -225,6 +227,7 @@ z+="string"
 */
 
 /*
+//問題発生
 z=[]
 x=[1,2,3]
 y=[4,5,6]
@@ -255,6 +258,7 @@ for a,b,c in l1,l2,l3:
 */
 
 /*
+//問題発生
 z=[]
 for a,b,c in [1,2,3],[4,5,6],[7,8,9]:
    z+=(a+b+c)
@@ -268,8 +272,8 @@ match l :
  |[] -> 0
  |[x] -> 1
  |[x,y,z] -> 2
-
 */
+
 
 /*
 t=(1,2,3)

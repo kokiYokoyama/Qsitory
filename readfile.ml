@@ -56,23 +56,23 @@ let parse str =
      F.printf "@[\n\nUnknown Parse error: %S@." (Lexing.lexeme lexbuf);
      exit 0
 
-let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) =
-  (* Format.printf "%a\n\n" (fun _-> print_env) env; *)
+let rec main_interpreter (ee: Program.e list) (env:Program.env list) (tenv:Program.tenv) =
   match ee with
   |[] -> Format.printf "finish"
   |e::ee1 ->
-    let (tequals,n) = expr_tval e [env] tenv [] 0 in
-    (* Format.printf "@[%a\n@." P.pp_tequals tequals; *)
+    Format.printf "@[式\n%a\n@." P.pp_expr e;
+    let (tequals,n) = expr_tval e env tenv [] 0 in
+    Format.printf "@[制約リスト\n%a\n@." P.pp_tequals tequals;
     begin
       match unif tequals [] with
-      |Some solutions -> (* print_tequals solutions; *)
-        Format.printf "@[%a\n@." P.pp_expr e;
+      |Some solutions ->
+        Format.printf "@[単一化後\n%a\n@." P.pp_tequals solutions;
         let (env1,tenv1) = arrange_EnvAndTenv e solutions env tenv in
-        Format.printf "@[[%a]\n@." P.pp_env env1;
-        (* Format.printf "@[[%a]\n@." P.pp_tenv tenv1; *)
+        Format.printf "@[環境情報整理\n[%a]\n@." P.pp_env (List.hd env1);
+        Format.printf "@[型環境情報整理\n[%a]\n@." P.pp_tenv tenv1;
         
         let (v,env2,tenv2) = expr_eval e env1 tenv1 in
-        (* Format.printf "%a\n" (fun _ -> print_evalResult) (v,env2,tenv2); *)
+        Format.printf "@[評価後\n%a\n" (fun _ -> print_evalResult) (v,env2,tenv2);
         begin
           match ee1 with
           |[] -> print_evalResult (v,env2,tenv2)
@@ -93,7 +93,7 @@ let interpreter filename =
     let ee = parse str in (* 読んだ中身を構文解析して結果を e とする *)
     doIfDebug "PARSING" print_endline ">> Parsed Result (internal data)";
     doIfDebug "PARSING" (F.printf "@[%a\n@." (pp_list "" "\n" (fun _ -> print_expr))) ee; (* expr 型 e を表示する *)
-    main_interpreter ee [] []
+    main_interpreter ee [[]] []
     (* match main_tval ee [] [] with
      * |tenv -> main_eval ee [] tenv *)
     (* main_eval ee [] [] *)
