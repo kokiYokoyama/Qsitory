@@ -131,7 +131,7 @@ and pp_tequals fmt (tequals:Program.tequals) = pp_list "" "\n" (pp_tuple2 pp_typ
 (* other *)
 let rec pp_evalResult fmt ((v,env,tenv) :Program.evalResult) =
   F.fprintf fmt "@[value: %a@." pp_value v;
-  F.fprintf fmt "@[env: %a@." pp_env env;
+  F.fprintf fmt "@[env: %a@." pp_env (List.hd env);
   F.fprintf fmt "@[tenv: %a@." pp_tenv tenv
 
            

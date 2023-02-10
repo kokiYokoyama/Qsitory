@@ -48,7 +48,7 @@ module Program = struct
   and tequals = ( t * t ) list
 
   (* other *)
-  type evalResult =(v * env * tenv )
+  type evalResult =(v * env list * tenv )
   type tvalResult =(tequals * int )
   type patternop = Some of env | None
 
@@ -273,5 +273,5 @@ and print_tequals (tequals:Program.tequals) =
 (* other *)
 let rec print_evalResult (result:Program.evalResult) =
   match result with
-  |(v,env,tenv) -> Format.printf "value: %a\nenv: %a\ntenv: %a\n" (fun _ -> print_value) v (fun _ -> print_env) env (fun _ -> print_tenv) tenv
+  |(v,env,tenv) -> Format.printf "value: %a\nenv: %a\ntenv: %a\n" (fun _ -> print_value) v (fun _ -> print_env) (List.hd env) (fun _ -> print_tenv) tenv
 ;;
