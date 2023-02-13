@@ -54,7 +54,7 @@ type scanner =
     mutable tenv: Program.tenv;
   }
 ;;
-let sc: scanner = { freshLine = true; readFinish = false; input = ""; line = ""; env = []; tenv = []; }
+let sc: scanner = { freshLine = true; readFinish = false; input = ""; line = ""; env = [[]]; tenv = []; }
 ;;
 let resetScanner() =
   sc.freshLine <- true;
