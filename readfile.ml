@@ -73,6 +73,7 @@ let rec main_interpreter (ee: Program.e list) (env:Program.env list) (tenv:Progr
         
         let (v,env2,tenv2) = expr_eval e env1 tenv1 in
         Format.printf "@[評価後\n%a\n" (fun _ -> print_evalResult) (v,env2,tenv2);
+        Format.printf "@[ローカル環境数\n%i\n@." (List.length env2);
         begin
           match ee1 with
           |[] -> print_evalResult (v,env2,tenv2)
