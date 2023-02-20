@@ -40,7 +40,7 @@ module Program = struct
         | Return of e | Dstruct of string * bk
         | UseIns1 of e * string | UseIns2 of e * e
   (* block *)
-  and bk = Expr of e | Block of e * bk
+  and bk = Block of e list
   (* environment *)
   and env = (string * t * v option) list
   (* type environment *)
@@ -62,8 +62,6 @@ type exp = P.e
 type pat = P.p         
 let pNil: pat = P.Nil
 let eNil: exp = P.Nil
-let pCons (p1,p2): pat = P.Cons(p1,p2)
-let eCons (e1,e2): exp = P.Cons(e1,e2)
 let eVar v: exp = P.Var v
 let pVar v: pat = P.Var v
 let eTrue: exp = P.Bool true
@@ -229,8 +227,7 @@ and print_expr (e:Program.e) =
 (* block *)
 and print_block (bk:Program.bk) =
   match bk with
-  |Expr e -> Format.printf "%a" (fun _ -> print_expr) e
-  |Block(e,bk) -> Format.printf "Block([%a,%a])" (fun _ -> print_expr) e (fun _ -> print_block) bk
+  |Block(elist) -> Format.printf "Block([%a])" (fun _ -> expr_arglist_print) elist
 
 and expr_tuple_print list =
   match list with
