@@ -32,7 +32,6 @@ and pp_aop fmt (aop:Program.aop) =
 and pp_type fmt (t:Program.t) =
   match t with
   | T s -> pp_string fmt s
-  | A s -> pp_string fmt s
   | MT s -> pp_string fmt s
   | Int -> pp_string fmt "Int"
   | Unit -> pp_string fmt "Unit"         
@@ -44,10 +43,11 @@ and pp_type fmt (t:Program.t) =
   | Fun(t1,t2) -> F.fprintf fmt "%a->%a" pp_type t1 pp_type t2
   | Struct list -> F.fprintf fmt "%a" (pp_list0 pp_type_struct1) list
   | Any -> pp_string fmt "Any"
+  | Ind -> pp_string fmt "Ind"
   | Operate(op,t1,t2) -> F.fprintf fmt "Operate(%a %a %a)" pp_type t1 pp_op op pp_type t2
   | Return t1 -> F.fprintf fmt "Return(%a)" pp_type t1
 
-and pp_type_struct1 fmt (s,t,_) = pp_tuple2 pp_string pp_type fmt (s,t)
+and pp_type_struct1 fmt (s,t) = pp_tuple2 pp_string pp_type fmt (s,t)
          
 (* value *)
 and pp_value fmt (v:Program.v) =
@@ -60,7 +60,7 @@ and pp_value fmt (v:Program.v) =
   | Nil -> pp_string fmt "[]" 
   | Cons(v1,v2) -> F.fprintf fmt "%a::%a" pp_value v1 pp_value v2
   | Tuple list -> F.fprintf fmt "(%a)" (pp_list "" "," pp_value) list
-  | FunClos(env,s,e) -> F.fprintf fmt "FunClos(%a,%s,%a)" pp_env env s pp_expr e
+  | FunClos(env,s,bk) -> F.fprintf fmt "FunClos(%a,%s,%a)" pp_env env s pp_block bk
   | Struct (s,list) -> F.fprintf fmt "Struct(%s,[%a])" s pp_env list
 
 (* and pp_value_struct1 fmt (s,t,v) = pp_tuple3 pp_string pp_type pp_value fmt (s,t,v) *)
@@ -93,7 +93,7 @@ and pp_expr fmt (e:Program.e) =
   | Declrt1(t,s,e) -> F.fprintf fmt "Declrt1(%a,%s,%a)" pp_type t s pp_expr e
   | Declrt2(t,s) -> F.fprintf fmt "Declrt2(%a,%s)" pp_type t s
   | Formu(p,e) -> F.fprintf fmt "Formu(%a,%a)" pp_pat p pp_expr e
-  | Formu2(e1,e2) -> F.fprintf fmt "Formu2(%a,%a)" pp_expr e1 pp_expr e2
+  | Formu2(t,e1,e2) -> F.fprintf fmt "Formu2(%a,%a,%a)" pp_type t pp_expr e1 pp_expr e2
   | AOperate(aop,e1,e2) -> F.fprintf fmt "AOperate(%a,%a,%a)" pp_aop aop pp_expr e1 pp_expr e2
   | SubFormu(e,p) -> F.fprintf fmt "SubFormu(%a,%a)" pp_expr e pp_pat p
   | Operate(op,e1,e2) -> F.fprintf fmt "Operate(%a,%a,%a)" pp_op op pp_expr e1 pp_expr e2
@@ -105,19 +105,23 @@ and pp_expr fmt (e:Program.e) =
   | For(list1,ee,e) -> F.fprintf fmt "For([%a],[%a],%a)" (pp_list0 pp_expr_patlist1) list1 (pp_list0 pp_expr) ee pp_expr e
   | For_dict(list1,e1,e2) -> F.fprintf fmt "For_dict([%a],%a,%a)" (pp_list0 pp_expr_patlist1) list1 pp_expr e1 pp_expr e2
                     *)
-  | For(list1,ee,e) -> F.fprintf fmt "For([%a],[%a],%a)" (pp_list0 pp_string) list1 (pp_list0 pp_expr) ee pp_expr e                   
-  | For_dict(list1,e1,e2) -> F.fprintf fmt "For_dict([%a],%a,%a)" (pp_list0 pp_string) list1 pp_expr e1 pp_expr e2
-  | While(e1,e2) -> F.fprintf fmt "While(%a,%a)" pp_expr e1 pp_expr e2
-  | Dfun(t,s,e) -> F.fprintf fmt "Dfun(%a,%s,%a)" pp_type t s pp_expr e
+  | For(list1,ee,bk) -> F.fprintf fmt "For([%a],[%a],%a)" (pp_list0 pp_string) list1 (pp_list0 pp_expr) ee pp_block bk                   
+  | For_dict(list1,e1,bk) -> F.fprintf fmt "For_dict([%a],%a,%a)" (pp_list0 pp_string) list1 pp_expr e1 pp_block bk
+  | While(e1,bk) -> F.fprintf fmt "While(%a,%a)" pp_expr e1 pp_block bk
+  | Dfun(t,s,bk) -> F.fprintf fmt "Dfun(%a,%s,%a)" pp_type t s pp_block bk
   | Fun(e1,e2) -> F.fprintf fmt "Fun(%a,%a)" pp_expr e1 pp_expr e2
   | Return(e) -> F.fprintf fmt "Return(%a)" pp_expr e
-  | Dstruct(s,e) -> F.fprintf fmt "Dstruct(%s,%a)" s pp_expr e
-  | MakeIns(s) -> F.fprintf fmt "MakeIns(%s)" s
+  | Dstruct(s,bk) -> F.fprintf fmt "Dstruct(%s,%a)" s pp_block bk
   | UseIns1(e,s) -> F.fprintf fmt "UseIns1(%a,%s)" pp_expr e s
   | UseIns2(e1,e2) -> F.fprintf fmt "UseIns2(%a,%a)" pp_expr e1 pp_expr e2
-  | Block list -> F.fprintf fmt "Block([%a])" (pp_list0 pp_expr) list
 
-and pp_expr_patlist1 fmt (p,e) = pp_tuple2 pp_pat pp_expr fmt (p,e)
+(* block *)
+and pp_block fmt (bk:Program.bk) =
+  match bk with
+  |Expr e -> F.fprintf fmt "%a" pp_expr e
+  |Block(e,bk) -> F.fprintf fmt "Block([%a,%a])" pp_expr e pp_block bk
+
+and pp_expr_patlist1 fmt (p,bk) = pp_tuple2 pp_pat pp_block fmt (p,bk)
 
 (* environment *)
 and pp_env fmt (env:Program.env) = pp_list0 (pp_tuple3 pp_string pp_type (pp_opt "Null" pp_value)) fmt env
