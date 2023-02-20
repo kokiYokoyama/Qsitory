@@ -10,18 +10,18 @@ module Program = struct
   type aop = Add | Sub | Mul | Div | Eq
 
   (* type *)
-  type t = T of string | A of string | MT of string
-         | Int | Double | Bool | String | Any | Unit
+  type t = T of string | Any | MT of string
+         | Int | Double | Bool | String | Ind | Unit
          | List of t | Tuple of t list
          | Fun of t * t
-         | Struct of env
+         | Struct of structEnv
          | Operate of op * t * t
          | Return of t
   (* value *)       
   and v = Int of int | Double of float | Bool of bool
         | String of string | Null | Nil
         | Cons of v * v | Tuple of v list
-        | FunClos of env * string * e (* FunClos(E,x,e) is (E)[fun x-> e] *)
+        | FunClos of env * string * bk (* FunClos(E,x,e) is (E)[fun x-> e] *)
         | Struct of string * env
   (* pattern *)
   and p = Int of int | Double of float | Bool of bool | String of string
@@ -31,24 +31,27 @@ module Program = struct
   and e = Int of int | Double of float | Bool of bool | String of string
         | Var of string | Null | Nil | Cons of e * e | Tuple of e list
         | Declrt1 of t * string * e | Declrt2 of t * string | Formu of p * e
-        | Formu2 of e * e | AOperate of aop * e * e | SubFormu of e * p
+        | Formu2 of t * e * e | AOperate of aop * e * e | SubFormu of e * p
         | Operate of op * e * e | Sub of e * p | Not of e | If of e * e * e
-        | Match of e * ( (p * e) list )
-        | For of ( string list) * ( e list ) * e
-        | For_dict of ( string list ) * e * e
-        | While of e * e | Dfun of t * string * e | Fun of e * e
-        | Return of e | Dstruct of string * e | MakeIns of string
+        | Match of e * ( (p * bk) list )
+        | For of ( string list) * ( e list ) * bk
+        | For_dict of ( string list ) * e * bk
+        | While of e * bk | Dfun of t * string * bk | Fun of e * e
+        | Return of e | Dstruct of string * bk
         | UseIns1 of e * string | UseIns2 of e * e
-        | Block of e list
+  (* block *)
+  and bk = Expr of e | Block of e * bk
   (* environment *)
   and env = (string * t * v option) list
   (* type environment *)
   and tenv = ( t * t ) list
+  (* struct environment *)
+  and structEnv = (string * t) list
   (* type equals *)
   and tequals = ( t * t ) list
 
   (* other *)
-  type evalResult =(v * env list * tenv )
+  type evalResult =(v * env * tenv )
   type tvalResult =(tequals * int )
   type patternop = Some of env | None
 
@@ -114,7 +117,6 @@ and print_aop (aop:Program.aop) =
 and print_type (t:Program.t) =
   match t with
   |T s -> Format.printf "(%s)" s
-  |A s -> Format.printf "(%s)" s
   |MT s -> Format.printf "(%s)" s
   |Unit -> Format.printf "Unit"
   |Int -> Format.printf "Int"
@@ -126,6 +128,7 @@ and print_type (t:Program.t) =
   |Fun(t1,t2) -> Format.printf "Fun(%a->%a)" (fun _ ->print_type) t1 (fun _ ->print_type) t2
   |Struct list -> Format.printf "[%a]" ( fun _ -> type_struct_print ) list
   |Any -> Format.printf "Any"
+  |Ind -> Format.printf "Ind"
   |Operate(op,t1,t2) -> Format.printf "Operate(%a %a %a)" (fun _ -> print_type) t1 (fun _ ->print_op) op (fun _ -> print_type) t2
   |Return t1 -> Format.printf "Return(%a)" (fun _ -> print_type) t1
 
@@ -137,8 +140,8 @@ and type_tuple_print list =
 
 and type_struct_print list =
   match list with
-  |(s,t,v)::[] -> Format.printf "(%s,%a)" s (fun _ -> print_type) t
-  |(s,t,v)::list1 -> Format.printf "(%s,%a),%a" s (fun _ -> print_type) t (fun _ -> type_struct_print) list1
+  |(s,t)::[] -> Format.printf "(%s,%a)" s (fun _ -> print_type) t
+  |(s,t)::list1 -> Format.printf "(%s,%a),%a" s (fun _ -> print_type) t (fun _ -> type_struct_print) list1
   | _ -> raise Error
 
 (* value *)
@@ -152,7 +155,7 @@ and print_value (v:Program.v) =
   |Nil -> Format.printf "[]" 
   |Cons(v1,v2) -> Format.printf "%a::%a" (fun _ -> print_value) v1 (fun _ -> print_value) v2
   |Tuple list -> Format.printf "(%a)" (fun _ -> value_tuple_print) list
-  |FunClos(env,s,e) -> Format.printf "FunClos(%a,%s,%a)" (fun _ -> print_env) env s (fun _ -> print_expr ) e
+  |FunClos(env,s,bk) -> Format.printf "FunClos(%a,%s,%a)" (fun _ -> print_env) env s (fun _ -> print_block ) bk
   |Struct (s,list) -> Format.printf "Struct(%s,[%a])" s (fun _ -> value_struct_print) list
 
 and value_tuple_print list =
@@ -203,7 +206,7 @@ and print_expr (e:Program.e) =
   |Declrt1(t,s,e) -> Format.printf "Declrt1(%a,%s,%a)" (fun _ -> print_type) t s (fun _ -> print_expr) e
   |Declrt2(t,s) -> Format.printf "Declrt2(%a,%s)" (fun _ -> print_type) t s
   |Formu(p,e) -> Format.printf "Formu(%a,%a)" (fun _ -> print_pat) p (fun _ -> print_expr) e
-  |Formu2(e1,e2) -> Format.printf "Formu2(%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
+  |Formu2(t,e1,e2) -> Format.printf "Formu2(%a,%a,%a)" (fun _ -> print_type) t (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
   |AOperate(aop,e1,e2) -> Format.printf "AOperate(%a,%a,%a)" (fun _ -> print_aop) aop (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
   |SubFormu(e,p) -> Format.printf "SubFormu(%a,%a)" (fun _ -> print_expr) e (fun _ -> print_pat ) p
   |Operate(op,e1,e2) -> Format.printf "Operate(%a,%a,%a)" (fun _ -> print_op) op (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
@@ -211,17 +214,21 @@ and print_expr (e:Program.e) =
   |Not(e) -> Format.printf "Not(%a)" (fun _ -> print_expr) e
   |If(e1,e2,e3) -> Format.printf "If(%a,%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_expr) e2 (fun _ -> print_expr) e3
   |Match(e,list) -> Format.printf "Match(%a,[%a])" (fun _ -> print_expr) e (fun _ -> expr_patlist_print) list
-  |For(list1,list2,e) -> Format.printf "For([%a],[%a],%a)" (fun _ -> expr_parlist_print) list1 (fun _ -> expr_arglist_print) list2 (fun _ -> print_expr) e
-  |For_dict(list1,e1,e2) -> Format.printf "For_dict([%a],%a,%a)" (fun _ -> expr_parlist_print) list1 (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
-  |While(e1,e2) -> Format.printf "While(%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
-  |Dfun(t,s,e) -> Format.printf "Dfun(%a,%s,%a)" (fun _ -> print_type) t s (fun _ -> print_expr) e
+  |For(list1,list2,bk) -> Format.printf "For([%a],[%a],%a)" (fun _ -> expr_parlist_print) list1 (fun _ -> expr_arglist_print) list2 (fun _ -> print_block) bk
+  |For_dict(list1,e1,bk) -> Format.printf "For_dict([%a],%a,%a)" (fun _ -> expr_parlist_print) list1 (fun _ -> print_expr) e1 (fun _ -> print_block) bk
+  |While(e1,bk) -> Format.printf "While(%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_block) bk
+  |Dfun(t,s,bk) -> Format.printf "Dfun(%a,%s,%a)" (fun _ -> print_type) t s (fun _ -> print_block) bk
   |Fun(e1,e2) -> Format.printf "Fun(%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
   |Return(e) -> Format.printf "Return(%a)" (fun _ -> print_expr) e
-  |Dstruct(s,e) -> Format.printf "Dstruct(%s,%a)"  s (fun _ -> print_expr) e
-  |MakeIns(s) -> Format.printf "MakeIns(%s)" s
+  |Dstruct(s,bk) -> Format.printf "Dstruct(%s,%a)" s (fun _ -> print_block) bk
   |UseIns1(e,s) -> Format.printf "UseIns1(%a,%s)" (fun _ -> print_expr) e s
   |UseIns2(e1,e2) -> Format.printf "UseIns2(%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
-  |Block list -> Format.printf "Block([%a])" (fun _ -> expr_arglist_print) list
+
+(* block *)
+and print_block (bk:Program.bk) =
+  match bk with
+  |Expr e -> Format.printf "%a" (fun _ -> print_expr) e
+  |Block(e,bk) -> Format.printf "Block([%a,%a])" (fun _ -> print_expr) e (fun _ -> print_block) bk
 
 and expr_tuple_print list =
   match list with
@@ -231,8 +238,8 @@ and expr_tuple_print list =
 
 and expr_patlist_print list =
   match list with
-  |(p,e)::[] -> Format.printf "(%a,%a)" (fun _ -> print_pat) p (fun _ -> print_expr) e
-  |(p,e)::list1 -> Format.printf "(%a,%a),%a" (fun _ -> print_pat) p (fun _ -> print_expr) e (fun _ -> expr_patlist_print) list1
+  |(p,bk)::[] -> Format.printf "(%a,%a)" (fun _ -> print_pat) p (fun _ -> print_block) bk
+  |(p,bk)::list1 -> Format.printf "(%a,%a),%a" (fun _ -> print_pat) p (fun _ -> print_block) bk (fun _ -> expr_patlist_print) list1
   | _ -> raise Error
 
 and expr_parlist_print list =
@@ -271,5 +278,5 @@ and print_tequals (tequals:Program.tequals) =
 (* other *)
 let rec print_evalResult (result:Program.evalResult) =
   match result with
-  |(v,env,tenv) -> Format.printf "value: %a\nenv: %a\ntenv: %a\n" (fun _ -> print_value) v (fun _ -> print_env) (List.hd env) (fun _ -> print_tenv) tenv
+  |(v,env,tenv) -> Format.printf "value: %a\nenv: %a\ntenv: %a\n" (fun _ -> print_value) v (fun _ -> print_env) env (fun _ -> print_tenv) tenv
 ;;
