@@ -234,8 +234,10 @@ patexp:
 /// Structs ## aa.fld / "aa".."fld" /  StructName()
   | aa = IDENT0; ssFld = nonempty_list(DOT; sFld=IDENT0 {sFld})
          { packExp @@ (List.fold_left (fun e fld -> P.UseIns1(e,fld)) (eVar aa) ssFld) }
-  | qStr = patexp; DOTDOT; qFld = patexp { packExp @@ P.UseIns2(unpackExp qStr, unpackExp qFld) }
+//  | qStr = patexp; DOTDOT; qFld = patexp { packExp @@ P.UseIns2(unpackExp qStr, unpackExp qFld) }
+  | sStr = STRING; DOTDOT; sFld = STRING { packExp @@ P.UseIns2(unpackExp sStr, unpackExp sFld) }                               
   | sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }
+  | STRUCT; sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }    
 /// Functions:
   | FUN; prm = separated_list(COMMA,tpprm); ARROW; ee = py_suite
        {
