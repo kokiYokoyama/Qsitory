@@ -1,16 +1,16 @@
-# Welcom to Qsitory project!
+# The Qsitory project
 
-## What is going this project
+## About this project
 
-*This project operates a new programming language Qsitory!*
+*Qsitory is a new programming language that supports the functional programming language features such as higher-order functions and recursive functions with some useful features. *
 
-*You can get an interpreter about Qsitory and use it as a programing language*
+*Currently this project develops an interpreter for Qsitory. *
 
 ## Why is Qsitory benefit
 
 *Qsitory has some features like other languages do not have.*
 
-### multidimensional 'enhanced loop statement'
+### multi-dimensional 'enhanced loop statement'
 
 *It is like Java's 'enhanced loop statement' and Python's 'for statement'.
 'Enhanced loop statement' is taking an element from a list and putting it in a variable and repeating. But also Qsitory enabled multiple lists.So you can eliminate the need to write many similar 'for statement'!*

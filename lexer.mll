@@ -184,6 +184,7 @@ rule tokens = parse
   | "->"      { addMemo "ARROW"; [ARROW] }
   | '|'       { addMemo "BAR"; [BAR] }
   | ':'       { addMemo "COLON"; [COLON] }
+  | "::"      { addMemo "COLCOL"; [COLCOL] }  
   | ';'       { addMemo "SEMICOLON"; [SEMICOLON] }
   | '.'       { addMemo "DOT"; [DOT] }
   | ".."      { addMemo "DOTDOT"; [DOTDOT] }

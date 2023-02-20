@@ -440,6 +440,7 @@ and patternMatch_update (p:Program.p) (v:Program.v) (env:Program.env) :Program.p
   |Nil,Nil -> Some env
   |Wild,v -> Some env
   |Cons(p1,p2),Cons(v1,v2) ->
+    print_endline "XXXXXXXXXXXXXXXXXXXXXX";
     begin
       match patternMatch_update p1 v1 env with
       |Some env1 -> patternMatch_update p2 v2 env1
