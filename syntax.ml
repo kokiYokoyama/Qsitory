@@ -32,7 +32,7 @@ module Program = struct
         | Var of string | Null | Nil | Cons of e * e | Tuple of e list
         | Declrt1 of t * string * e | Declrt2 of t * string | Formu of p * e
         | Formu2 of t * e * e | AOperate of aop * e * e | SubFormu of e * p
-        | Operate of op * e * e | Sub of e * p | Not of e | If of e * e * e
+        | Operate of op * e * e | Sub of e * p | Not of e | If of e * bk * bk
         | Match of e * ( (p * bk) list )
         | For of ( string list) * ( e list ) * bk
         | For_dict of ( string list ) * e * bk
@@ -86,7 +86,13 @@ let tString: P.t = P.String
 let tUnit: P.t = P.Unit
 let tStruct env: P.t = P.Struct env
 let tTuple tt : P.t = P.Tuple tt                    
-  
+let rec mkBlock ee: P.bk =
+  match ee with
+  | [] -> P.Expr Null
+  | [e] -> P.Expr e
+  | e::ee -> P.Block(e,mkBlock ee)
+
+                    
 (* print------------------------------------------------------------------ *)
 
 (* operator *)
@@ -214,7 +220,7 @@ and print_expr (e:Program.e) =
   |Operate(op,e1,e2) -> Format.printf "Operate(%a,%a,%a)" (fun _ -> print_op) op (fun _ -> print_expr) e1 (fun _ -> print_expr) e2
   |Sub(e,p) -> Format.printf "Sub(%a,%a)" (fun _ -> print_expr) e (fun _ -> print_pat) p
   |Not(e) -> Format.printf "Not(%a)" (fun _ -> print_expr) e
-  |If(e1,e2,e3) -> Format.printf "If(%a,%a,%a)" (fun _ -> print_expr) e1 (fun _ -> print_expr) e2 (fun _ -> print_expr) e3
+  |If(e,bk1,bk2) -> Format.printf "If(%a,%a,%a)" (fun _ -> print_expr) e (fun _ -> print_block) bk1 (fun _ -> print_block) bk2
   |Match(e,list) -> Format.printf "Match(%a,[%a])" (fun _ -> print_expr) e (fun _ -> expr_patlist_print) list
   |For(list1,list2,bk) -> Format.printf "For([%a],[%a],%a)" (fun _ -> expr_parlist_print) list1 (fun _ -> expr_arglist_print) list2 (fun _ -> print_block) bk
   |For_dict(list1,e1,bk) -> Format.printf "For_dict([%a],%a,%a)" (fun _ -> expr_parlist_print) list1 (fun _ -> print_expr) e1 (fun _ -> print_block) bk

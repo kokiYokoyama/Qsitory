@@ -151,8 +151,8 @@ qtype:
   | STRUCT; tName = IDENT1; LPAREN; RPAREN; COLON; ee = py_suite
       { let mkEnv1 e =
          match e with
-         | P.Declrt1(tp,x,_) -> (x,tp,None)
-         | P.Declrt2(tp,x)   -> (x,tp,None)
+         | P.Declrt1(tp,x,_) -> (x,tp)
+         | P.Declrt2(tp,x)   -> (x,tp)
          | _ ->
             let mes = "Non assignment-form cannot appear in a struct body" in
             raise (ParseError ("Unexpected struct definition: " ^ mes))
@@ -242,13 +242,13 @@ patexp:
   | FUN; prm = separated_list(COMMA,tpprm); ARROW; ee = py_suite
        {
          let prm = if prm = [] then [(P.Any,"")] else prm in
-         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,P.Block ee)]) prm ee) in
+         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,mkBlock ee)]) prm ee) in
          packExp @@ eFun
        }
   | FUN; LPAREN; prm = separated_list(COMMA,tpprm); RPAREN; ARROW; ee = py_suite
        {
          let prm = if prm = [] then [(P.Any,"")] else prm in
-         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,P.Block ee)]) prm ee) in
+         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,mkBlock ee)]) prm ee) in
          packExp @@ eFun
        }
   | qFun = patexp; LPAREN; qArg = patexp; RPAREN
@@ -256,7 +256,7 @@ patexp:
   | DEF; fname = IDENT0; LPAREN; prm = separated_list(COMMA,tpprm); RPAREN; COLON; ee = py_suite
        {
          let prm = if prm = [] then [(P.Any,"")] else prm in
-         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,P.Block ee)]) prm ee) in
+         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,mkBlock ee)]) prm ee) in
          packExp @@ P.Formu(pVar fname, eFun)
        }
 /// Return
@@ -273,21 +273,21 @@ patexp:
           }
 /// If-expression ## if e : block (else if e: block )* | (else : block)? )
   | IF; q = patexp; COLON; eeThen = py_suite; nonempty_list(NEWLINE); ELSE; COLON; eeElse = py_suite
-        { packExp @@ P.If (unpackExp q, P.Block eeThen, P.Block eeElse) }
+        { packExp @@ P.If (unpackExp q, mkBlock eeThen, mkBlock eeElse) }
 /// While-expression
   | WHILE; qCond = patexp; COLON; eeBody = py_suite
-       { packExp @@ P.While(unpackExp qCond, P.Block eeBody) }
+       { packExp @@ P.While(unpackExp qCond, mkBlock eeBody) }
 /// For-expression ## for x,y,z in e : block   
   | FOR; ss = separated_list(COMMA,IDENT0); IN; qq = separated_list(COMMA,patexp); COLON; eeBody = py_suite
-       { packExp @@ P.For(ss, List.map unpackExp qq, P.Block eeBody) }
+       { packExp @@ P.For(ss, List.map unpackExp qq, mkBlock eeBody) }
 /// Fordict-expression ## fordict x,y,z in e : block
   | FORDICT; ss = separated_list(COMMA,IDENT0); IN; q = patexp; COLON; eeBody = py_suite
-       { packExp @@ P.For_dict (ss, unpackExp q, P.Block eeBody) }
+       { packExp @@ P.For_dict (ss, unpackExp q, mkBlock eeBody) }
 /// Struct expression
   | STRUCT; sName = IDENT1; COLON; eeBody = py_suite
-      { packExp @@ P.Dstruct (sName, P.Block eeBody) }
+      { packExp @@ P.Dstruct (sName, mkBlock eeBody) }
 /// Pass
-  | PASS { packExp @@ P.Block [] }
+  | PASS { packExp @@ Null }
 ;
 
 /// block (Python-style, See: https://docs.python.org/ja/3/reference/compound_stmts.html)
@@ -303,10 +303,10 @@ py_suite:
   | NEWLINE; INDENT; NEWLINE; DEDENT { [] }
 ;
 match_clause_simple:
-  | p = pattern; ARROW; body = expression { (p,P.Block [body]) }    
+  | p = pattern; ARROW; body = expression { (p, mkBlock [body]) }    
 ;
 match_clause:
-  | p = pattern; ARROW; ee = py_suite; list(NEWLINE) { (p,P.Block ee) }
+  | p = pattern; ARROW; ee = py_suite; list(NEWLINE) { (p, mkBlock ee) }
 ;
 match_clauses_suite:
   | option(BAR); cc = separated_nonempty_list(BAR, c = match_clause_simple { c }) { cc }

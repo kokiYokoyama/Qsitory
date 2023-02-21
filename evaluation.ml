@@ -143,14 +143,14 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
           |_ -> raise Error
         end
     end
-  |If(e1,e2,e3) ->
+  |If(e,bk1,bk2) ->
     begin
-      match expr_eval e1 env tenv with
+      match expr_eval e env tenv with
       |(v1,env1,tenv1) ->
         begin
           match v1 with
-          |Bool true -> expr_eval e2 env1 tenv1
-          |Bool false -> expr_eval e3 env1 tenv1
+          |Bool true -> block_eval bk1 env1 tenv1
+          |Bool false -> block_eval bk2 env1 tenv1
           |_ -> raise Error
         end
     end
@@ -951,10 +951,10 @@ and expr_tval (e:Program.e) (env:Program.env list) (tenv:Program.tenv) (tequals:
     
   |Not e -> expr_tval e env tenv (((t (n+1)),Bool)::((t n),Bool)::tequals) (n+1)
           
-  |If(e1,e2,e3) ->
-    let (tequals1,n1) = expr_tval e1 env tenv (((t (n+1)),Bool)::tequals) (n+1) in
-    let (tequals2,n2) = expr_tval e2 env tenv (((t n),(t (n1+1)))::tequals1) (n1+1) in
-    expr_tval e3 env tenv (((t n),(t (n2+1)))::tequals2) (n2+1)
+  |If(e,bk1,bk2) ->
+    let (tequals1,n1) = expr_tval e env tenv (((t (n+1)),Bool)::tequals) (n+1) in
+    let (tequals2,n2) = block_tval bk1 env tenv (((t n),(t (n1+1)))::tequals1) (n1+1) in
+    block_tval bk2 env tenv (((t n),(t (n2+1)))::tequals2) (n2+1)
     
   |Match(e,patlist) ->
     let (tequals1,n1) = expr_tval e env tenv tequals (n+1) in
