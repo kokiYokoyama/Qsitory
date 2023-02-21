@@ -362,10 +362,30 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
 
 and block_eval (bk:Program.bk) (env:Program.env) (tenv:Program.tenv) :Program.evalResult =
   match bk with
-  |Expr e -> expr_eval e env tenv
-  |Block(e,bk1) ->
-    let (v1,env1,tenv1) = expr_eval e env tenv in
-    block_eval bk1 env1 tenv1
+  |Block elist ->
+    begin
+      match elist with
+      |e::elist1 ->
+        begin
+          try
+            let (v1,env1,tenv1) = expr_eval e env tenv in
+            begin
+              try
+                let v2 = find env1 "rv" in
+                (v2,env1,tenv1)
+              with
+              |NoValueError ->
+                begin
+                  match elist1 with
+                  |[] -> (Null,env1,tenv1)
+                  |_ -> block_eval (Block(elist1)) env1 tenv1
+                end
+            end
+          with
+          |NoValueError -> block_eval (Block(elist1)) env tenv
+        end
+      |_ -> raise Error
+    end
                  
 (* eval's function!------------------------------------------------------- *)
 
@@ -1199,10 +1219,19 @@ and expr_tval (e:Program.e) (env:Program.env list) (tenv:Program.tenv) (tequals:
 
 and block_tval (bk:Program.bk) (env:Program.env list) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
   match bk with
-  |Expr e -> expr_tval e env tenv tequals n
-  |Block(e,bk) ->
-    let (tequals1,n1) = expr_tval e env tenv tequals n in
-    block_tval bk env tenv tequals1 n1
+  |Block elist ->
+    begin
+      match elist with
+      |e::elist1 ->
+        let (tequals1,n1) = expr_tval e env tenv tequals (n+1) in
+        begin
+          match elist1 with
+          |[] -> ((((t n),(t (n+1)))::tequals1),n1)
+          |_ -> block_tval (Block(elist1)) env tenv tequals1 (n1+1)
+        end
+      |_ -> raise Error
+    end
+        
    
     
 
