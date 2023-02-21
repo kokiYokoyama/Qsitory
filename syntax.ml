@@ -64,6 +64,8 @@ let pNil: pat = P.Nil
 let eNil: exp = P.Nil
 let eVar v: exp = P.Var v
 let pVar v: pat = P.Var v
+let eCons(e1,e2): exp = P.Cons(e1,e2)
+let pCons(p1,p2): pat = P.Cons(p1,p2)
 let eTrue: exp = P.Bool true
 let pTrue: pat = P.Bool true
 let eFalse: exp = P.Bool false
@@ -84,12 +86,6 @@ let tString: P.t = P.String
 let tUnit: P.t = P.Unit
 let tStruct env: P.t = P.Struct env
 let tTuple tt : P.t = P.Tuple tt                    
-let rec mkBlock ee: P.bk =
-  match ee with
-  | [] -> P.Expr Null
-  | [e] -> P.Expr e
-  | e::ee -> P.Block(e,mkBlock ee)
-
                     
 (* print------------------------------------------------------------------ *)
 

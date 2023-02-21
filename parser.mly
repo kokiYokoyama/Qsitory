@@ -101,7 +101,7 @@
 %left PLUS MINUS
 %right ARROW
 %left AST
-%left DOTDOT
+%left DOTDOT DOT
 %nonassoc LPAREN
 
 %start main
@@ -220,12 +220,12 @@ patexp:
   | q1 = patexp; MINUSEQ; q2 = patexp { packExp @@ P.AOperate(P.Sub,unpackExp q1,unpackExp q2) }
   | q1 = patexp; MULEQ;   q2 = patexp { packExp @@ P.AOperate(P.Mul,unpackExp q1,unpackExp q2) }
   | q1 = patexp; DIVEQ;   q2 = patexp { packExp @@ P.AOperate(P.Div,unpackExp q1,unpackExp q2) }
-/// Assignments: p = e / aa.fld = e / "aa".."fld" = e
+/// Assignments: p = e / e.fld = e / e..…..e = e
   | q0 = patexp; EQ; q = patexp 
         { let e = unpackExp q in
           match q0 with
           | (Some p0,_) -> packExp @@ P.Formu (p0,e)
-          | (_,Some e0) -> packExp @@ P.Formu2(e0,e)
+          | (_,Some e0) -> packExp @@ P.Formu2(P.Any,e0,e)
           | (_,_) -> raise (ParseError "Unexpected assignment")
         }
 /// Pattern-substaction e.-p / Pattern-substaction-assignment e .= p
@@ -234,21 +234,21 @@ patexp:
 /// Structs ## aa.fld / "aa".."fld" /  StructName()
   | aa = IDENT0; ssFld = nonempty_list(DOT; sFld=IDENT0 {sFld})
          { packExp @@ (List.fold_left (fun e fld -> P.UseIns1(e,fld)) (eVar aa) ssFld) }
-//  | qStr = patexp; DOTDOT; qFld = patexp { packExp @@ P.UseIns2(unpackExp qStr, unpackExp qFld) }
-  | sStr = STRING; DOTDOT; sFld = STRING { packExp @@ P.UseIns2(unpackExp sStr, unpackExp sFld) }                               
-  | sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }
-  | STRUCT; sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }    
+  | eStr = patexp; DOTDOT; eFld = patexp { packExp @@ P.UseIns2(unpackExp eStr, unpackExp eFld) }
+//  | qStr = patexp; DOTDOT; qFld = patexp { packExp @@ P.UseIns2(unpackExp qStr, unpackExp qFld) }    
+//  | sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }
+//  | STRUCT; sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }    
 /// Functions:
   | FUN; prm = separated_list(COMMA,tpprm); ARROW; ee = py_suite
        {
          let prm = if prm = [] then [(P.Any,"")] else prm in
-         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,mkBlock ee)]) prm ee) in
+         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,P.Block ee)]) prm ee) in
          packExp @@ eFun
        }
   | FUN; LPAREN; prm = separated_list(COMMA,tpprm); RPAREN; ARROW; ee = py_suite
        {
          let prm = if prm = [] then [(P.Any,"")] else prm in
-         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,mkBlock ee)]) prm ee) in
+         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,P.Block ee)]) prm ee) in
          packExp @@ eFun
        }
   | qFun = patexp; LPAREN; qArg = patexp; RPAREN
@@ -256,7 +256,7 @@ patexp:
   | DEF; fname = IDENT0; LPAREN; prm = separated_list(COMMA,tpprm); RPAREN; COLON; ee = py_suite
        {
          let prm = if prm = [] then [(P.Any,"")] else prm in
-         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,mkBlock ee)]) prm ee) in
+         let eFun = List.hd (List.fold_right (fun (t,s) ee -> [P.Dfun(t,s,P.Block ee)]) prm ee) in
          packExp @@ P.Formu(pVar fname, eFun)
        }
 /// Return
@@ -273,19 +273,19 @@ patexp:
           }
 /// If-expression ## if e : block (else if e: block )* | (else : block)? )
   | IF; q = patexp; COLON; eeThen = py_suite; nonempty_list(NEWLINE); ELSE; COLON; eeElse = py_suite
-        { packExp @@ P.If (unpackExp q, mkBlock eeThen, mkBlock eeElse) }
+        { packExp @@ P.If (unpackExp q, P.Block eeThen, P.Block eeElse) }
 /// While-expression
   | WHILE; qCond = patexp; COLON; eeBody = py_suite
-       { packExp @@ P.While(unpackExp qCond, mkBlock eeBody) }
+       { packExp @@ P.While(unpackExp qCond, P.Block eeBody) }
 /// For-expression ## for x,y,z in e : block   
   | FOR; ss = separated_list(COMMA,IDENT0); IN; qq = separated_list(COMMA,patexp); COLON; eeBody = py_suite
-       { packExp @@ P.For(ss, List.map unpackExp qq, mkBlock eeBody) }
+       { packExp @@ P.For(ss, List.map unpackExp qq, P.Block eeBody) }
 /// Fordict-expression ## fordict x,y,z in e : block
   | FORDICT; ss = separated_list(COMMA,IDENT0); IN; q = patexp; COLON; eeBody = py_suite
-       { packExp @@ P.For_dict (ss, unpackExp q, mkBlock eeBody) }
+       { packExp @@ P.For_dict (ss, unpackExp q, P.Block eeBody) }
 /// Struct expression
   | STRUCT; sName = IDENT1; COLON; eeBody = py_suite
-      { packExp @@ P.Dstruct (sName, mkBlock eeBody) }
+      { packExp @@ P.Dstruct (sName, P.Block eeBody) }
 /// Pass
   | PASS { packExp @@ Null }
 ;
@@ -303,10 +303,10 @@ py_suite:
   | NEWLINE; INDENT; NEWLINE; DEDENT { [] }
 ;
 match_clause_simple:
-  | p = pattern; ARROW; body = expression { (p, mkBlock [body]) }    
+  | p = pattern; ARROW; body = expression { (p, P.Block [body]) }    
 ;
 match_clause:
-  | p = pattern; ARROW; ee = py_suite; list(NEWLINE) { (p, mkBlock ee) }
+  | p = pattern; ARROW; ee = py_suite; list(NEWLINE) { (p, P.Block ee) }
 ;
 match_clauses_suite:
   | option(BAR); cc = separated_nonempty_list(BAR, c = match_clause_simple { c }) { cc }

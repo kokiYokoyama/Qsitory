@@ -50,11 +50,11 @@ type scanner =
     mutable readFinish: bool;
     mutable input: string;
     mutable line: string;
-    mutable env: Program.env list;
+    mutable env: Program.env;
     mutable tenv: Program.tenv;
   }
 ;;
-let sc: scanner = { freshLine = true; readFinish = false; input = ""; line = ""; env = [[]]; tenv = []; }
+let sc: scanner = { freshLine = true; readFinish = false; input = ""; line = ""; env = []; tenv = []; }
 ;;
 let resetScanner() =
   sc.freshLine <- true;
@@ -107,18 +107,18 @@ let interpreter () =
        doIfDebug "PARSING" (F.printf "@[Expr: %a@." (pp_list "" "\n" P.pp_expr)) ee;
        let valueOpt = ref None in
        List.iter (fun e ->
-           let (tequals,n) = Evaluation.expr_tval e sc.env sc.tenv [] 0 in
+           let (tequals,n) = Evaluation.expr_tval e [sc.env] sc.tenv [] 0 in
            match Evaluation.unif tequals [] with
-           |Some solutions ->
+           | Some solutions ->
              let (env1,tenv1) = Evaluation.arrange_EnvAndTenv e solutions sc.env sc.tenv in
              let (v,ev,tev) = Evaluation.expr_eval e env1 tenv1 in
              sc.env <- ev;
              sc.tenv <- tev;
              valueOpt := Some v
-           |None -> raise TypeError
+           | None -> raise TypeError
          ) ee;
        F.printf "@[Value: %a@." (pp_opt "NoValue" Pprint.pp_value) !valueOpt;
-       F.printf "@[Env : [%a]@." Pprint.pp_env (List.hd (sc.env));
+       F.printf "@[Env : [%a]@." Pprint.pp_env sc.env;
        F.printf "@[TEnv: [%a]@." Pprint.pp_tenv sc.tenv;       
        (* eval *)
        resetScanner(); 
