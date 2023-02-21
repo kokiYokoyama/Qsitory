@@ -99,7 +99,7 @@ and pp_expr fmt (e:Program.e) =
   | Operate(op,e1,e2) -> F.fprintf fmt "Operate(%a,%a,%a)" pp_op op pp_expr e1 pp_expr e2
   | Sub(e,p) -> F.fprintf fmt "Sub(%a,%a)" pp_expr e pp_pat p
   | Not(e) -> F.fprintf fmt "Not(%a)" pp_expr e
-  | If(e1,e2,e3) -> F.fprintf fmt "If(%a,%a,%a)" pp_expr e1 pp_expr e2 pp_expr e3
+  | If(e,bk1,bk2) -> F.fprintf fmt "If(%a,%a,%a)" pp_expr e pp_block bk1 pp_block bk2
   | Match(e,list) -> F.fprintf fmt "Match(%a,[%a])" pp_expr e (pp_list0 pp_expr_patlist1) list
                    (*
   | For(list1,ee,e) -> F.fprintf fmt "For([%a],[%a],%a)" (pp_list0 pp_expr_patlist1) list1 (pp_list0 pp_expr) ee pp_expr e

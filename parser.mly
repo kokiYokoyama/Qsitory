@@ -101,7 +101,7 @@
 %left PLUS MINUS
 %right ARROW
 %left AST
-%left DOTDOT
+%left DOTDOT DOT
 %nonassoc LPAREN
 
 %start main
@@ -151,8 +151,8 @@ qtype:
   | STRUCT; tName = IDENT1; LPAREN; RPAREN; COLON; ee = py_suite
       { let mkEnv1 e =
          match e with
-         | P.Declrt1(tp,x,_) -> (x,tp,None)
-         | P.Declrt2(tp,x)   -> (x,tp,None)
+         | P.Declrt1(tp,x,_) -> (x,tp)
+         | P.Declrt2(tp,x)   -> (x,tp)
          | _ ->
             let mes = "Non assignment-form cannot appear in a struct body" in
             raise (ParseError ("Unexpected struct definition: " ^ mes))
@@ -220,12 +220,12 @@ patexp:
   | q1 = patexp; MINUSEQ; q2 = patexp { packExp @@ P.AOperate(P.Sub,unpackExp q1,unpackExp q2) }
   | q1 = patexp; MULEQ;   q2 = patexp { packExp @@ P.AOperate(P.Mul,unpackExp q1,unpackExp q2) }
   | q1 = patexp; DIVEQ;   q2 = patexp { packExp @@ P.AOperate(P.Div,unpackExp q1,unpackExp q2) }
-/// Assignments: p = e / aa.fld = e / "aa".."fld" = e
+/// Assignments: p = e / e.fld = e / e..…..e = e
   | q0 = patexp; EQ; q = patexp 
         { let e = unpackExp q in
           match q0 with
           | (Some p0,_) -> packExp @@ P.Formu (p0,e)
-          | (_,Some e0) -> packExp @@ P.Formu2(e0,e)
+          | (_,Some e0) -> packExp @@ P.Formu2(P.Any,e0,e)
           | (_,_) -> raise (ParseError "Unexpected assignment")
         }
 /// Pattern-substaction e.-p / Pattern-substaction-assignment e .= p
@@ -234,10 +234,10 @@ patexp:
 /// Structs ## aa.fld / "aa".."fld" /  StructName()
   | aa = IDENT0; ssFld = nonempty_list(DOT; sFld=IDENT0 {sFld})
          { packExp @@ (List.fold_left (fun e fld -> P.UseIns1(e,fld)) (eVar aa) ssFld) }
-//  | qStr = patexp; DOTDOT; qFld = patexp { packExp @@ P.UseIns2(unpackExp qStr, unpackExp qFld) }
-  | sStr = STRING; DOTDOT; sFld = STRING { packExp @@ P.UseIns2(unpackExp sStr, unpackExp sFld) }                               
-  | sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }
-  | STRUCT; sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }    
+  | eStr = patexp; DOTDOT; eFld = patexp { packExp @@ P.UseIns2(unpackExp eStr, unpackExp eFld) }
+//  | qStr = patexp; DOTDOT; qFld = patexp { packExp @@ P.UseIns2(unpackExp qStr, unpackExp qFld) }    
+//  | sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }
+//  | STRUCT; sStr = IDENT1; LPAREN; RPAREN        { packExp @@ P.MakeIns sStr }    
 /// Functions:
   | FUN; prm = separated_list(COMMA,tpprm); ARROW; ee = py_suite
        {
@@ -287,7 +287,7 @@ patexp:
   | STRUCT; sName = IDENT1; COLON; eeBody = py_suite
       { packExp @@ P.Dstruct (sName, P.Block eeBody) }
 /// Pass
-  | PASS { packExp @@ P.Block [] }
+  | PASS { packExp @@ Null }
 ;
 
 /// block (Python-style, See: https://docs.python.org/ja/3/reference/compound_stmts.html)
@@ -303,10 +303,10 @@ py_suite:
   | NEWLINE; INDENT; NEWLINE; DEDENT { [] }
 ;
 match_clause_simple:
-  | p = pattern; ARROW; body = expression { (p,P.Block [body]) }    
+  | p = pattern; ARROW; body = expression { (p, P.Block [body]) }    
 ;
 match_clause:
-  | p = pattern; ARROW; ee = py_suite; list(NEWLINE) { (p,P.Block ee) }
+  | p = pattern; ARROW; ee = py_suite; list(NEWLINE) { (p, P.Block ee) }
 ;
 match_clauses_suite:
   | option(BAR); cc = separated_nonempty_list(BAR, c = match_clause_simple { c }) { cc }
