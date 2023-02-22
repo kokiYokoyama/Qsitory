@@ -118,7 +118,7 @@ and pp_expr fmt (e:Program.e) =
 (* block *)
 and pp_block fmt (bk:Program.bk) =
   match bk with
-  |Block elist -> F.fprintf fmt "Block([%a])" (pp_list0 pp_expr) elist
+  | Block elist -> F.fprintf fmt "Block([%a])" (pp_list0 pp_expr) elist
 
 and pp_expr_patlist1 fmt (p,bk) = pp_tuple2 pp_pat pp_block fmt (p,bk)
 

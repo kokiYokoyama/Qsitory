@@ -148,7 +148,7 @@ qtype:
   | t1 = qtype; AST; t2 = qtype { tMergeTuple t1 t2 }
 /// Struct types
   | STRUCT; tName = IDENT1 { P.T tName }    
-  | STRUCT; tName = IDENT1; LPAREN; RPAREN; COLON; ee = py_suite
+  | STRUCT; tName = IDENT1; LPAREN; RPAREN; COLON; ee = struct_suite
       { let mkEnv1 e =
          match e with
          | P.Declrt1(tp,x,_) -> (x,tp)
@@ -265,6 +265,7 @@ patexp:
   | MATCH; q = patexp; COLON; cc = match_clauses_suite
        { packExp @@ P.Match(unpackExp q,cc) }
 /// Declaration / Declaration+Initialization
+  | STRUCT; tName = IDENT1; COLON; x = IDENT0 { packExp @@ P.Declrt2(P.T tName,x) }
   | tp = qtype; COLON; x = IDENT0; qOpt = option(EQ; q = patexp {q})
           {
             match qOpt with
@@ -284,7 +285,7 @@ patexp:
   | FORDICT; ss = separated_list(COMMA,IDENT0); IN; q = patexp; COLON; eeBody = py_suite
        { packExp @@ P.For_dict (ss, unpackExp q, P.Block eeBody) }
 /// Struct expression
-  | STRUCT; sName = IDENT1; COLON; eeBody = py_suite
+  | STRUCT; sName = IDENT1; COLON; eeBody = struct_suite
       { packExp @@ P.Dstruct (sName, P.Block eeBody) }
 /// Pass
   | PASS { packExp @@ Null }
@@ -302,6 +303,15 @@ py_suite:
   | NEWLINE; INDENT; eee = nonempty_list(py_statement); DEDENT { List.flatten eee }
   | NEWLINE; INDENT; NEWLINE; DEDENT { [] }
 ;
+// Struct-body form: "tp:fld" or "tp:fld = exp"
+struct_body_one:
+  | tp = qtype; COLON; x = IDENT0 { P.Declrt2(tp,x) }
+  | tp = qtype; COLON; x = IDENT0; EQ; e = expression { P.Declrt1(tp,x,e) }
+;
+struct_suite: 
+//  | e = struct_body_one; ee = list(SEMICOLON; e = struct_body_one {e}); { e::ee }
+  | NEWLINE; INDENT; ee = nonempty_list(e = struct_body_one;nonempty_list(NEWLINE) {e}); DEDENT { ee }
+;    
 match_clause_simple:
   | p = pattern; ARROW; body = expression { (p, P.Block [body]) }    
 ;

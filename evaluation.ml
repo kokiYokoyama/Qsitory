@@ -1998,8 +1998,8 @@ and arrange_EnvAndTenv (e:Program.e) (solutions:Program.tequals) (env:Program.en
 
 and makeStructTenv (bk:Program.bk) :Program.structEnv =
   match block_eval bk [] [] with
-  |(v,env,tenv) ->
-    List.map (fun (s,t,v) -> delete_value_env s t v) env
+  | (v,env,tenv) ->
+     List.map (fun (s,t,v) -> delete_value_env s t v) env
 
 and delete_value_env (s:string) (t:Program.t) (v:Program.v option) :(string * Program.t) =
   (s,t)

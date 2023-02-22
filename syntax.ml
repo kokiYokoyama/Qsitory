@@ -235,25 +235,25 @@ and expr_tuple_print list =
   match list with
   |e::[] -> Format.printf "%a" (fun _ -> print_expr) e
   |e::list1 -> Format.printf "%a,%a" (fun _ -> print_expr) e (fun _ -> expr_tuple_print) list1
-  | _ -> raise Error
+  | _ -> Format.printf "Error in expr_tuple_print"; raise Error
 
 and expr_patlist_print list =
   match list with
   |(p,bk)::[] -> Format.printf "(%a,%a)" (fun _ -> print_pat) p (fun _ -> print_block) bk
   |(p,bk)::list1 -> Format.printf "(%a,%a),%a" (fun _ -> print_pat) p (fun _ -> print_block) bk (fun _ -> expr_patlist_print) list1
-  | _ -> raise Error
+  | _ -> Format.printf "@[Error in expr_patlist_print@."; raise Error
 
 and expr_parlist_print list =
   match list with
   |s::[] -> Format.printf "%s" s
   |s::list1 -> Format.printf "%s,%a" s (fun _ -> expr_parlist_print) list1
-  | _ -> raise Error
+  | _ -> print_endline "Error in expr_parlist_print"; raise Error
 
 and expr_arglist_print list =
   match list with
   |e::[] -> Format.printf "%a" (fun _ -> print_expr) e
   |e::list1 -> Format.printf "%a,%a" (fun _ -> print_expr) e (fun _ -> expr_arglist_print) list1
-  | _ -> raise Error
+  | _ -> print_endline "Error in expr_arglistlist_print"; raise Error
 
 (* environment *)
 and print_env (env:Program.env) =
