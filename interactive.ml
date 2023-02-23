@@ -160,7 +160,7 @@ let interpreter () =
          done
     with
     | GotoNextA -> resetScanner ()
-    | Evaluation.NoValueError -> Format.printf "Error: No Value\n"; resetScanner ()
-    | Syntax.Error -> Format.printf "Error: Unexpected Syntax\n"; resetScanner ()
+    | Evaluation.NoValueError -> Format.printf "@[Error: No Value@."; resetScanner ()
+    | Syntax.Error -> Format.printf "@[Error from Evaluation@."; resetScanner ()
   done
 ;;
