@@ -31,8 +31,8 @@ and pp_aop fmt (aop:Program.aop) =
 (* type *)
 and pp_type fmt (t:Program.t) =
   match t with
-  | T s -> pp_string fmt s
-  | MT s -> pp_string fmt s
+  | T s -> Format.printf "%a" pp_string s
+  | MT s -> Format.printf "%a" pp_string s
   | Int -> pp_string fmt "Int"
   | Unit -> pp_string fmt "Unit"         
   | Double -> pp_string fmt "Double"      
@@ -41,7 +41,7 @@ and pp_type fmt (t:Program.t) =
   | List t1 -> F.fprintf fmt "List(%a)" pp_type t1
   | Tuple list -> F.fprintf fmt "Tuple(%a)" (pp_list0 pp_type) list
   | Fun(t1,t2) -> F.fprintf fmt "%a->%a" pp_type t1 pp_type t2
-  | Struct list -> F.fprintf fmt "%a" (pp_list0 pp_type_struct1) list
+  | Struct structenv -> F.fprintf fmt "%a" (pp_list0_bracket pp_type_struct1) structenv
   | Any -> pp_string fmt "Any"
   | Ind -> pp_string fmt "Ind"
   | Operate(op,t1,t2) -> F.fprintf fmt "Operate(%a %a %a)" pp_type t1 pp_op op pp_type t2
@@ -57,12 +57,17 @@ and pp_value fmt (v:Program.v) =
   | Bool b -> F.fprintf fmt "%B" b
   | String s -> pp_string fmt s
   | Null -> pp_string fmt "()"
-  | Nil -> pp_string fmt "[]" 
-  | Cons(v1,v2) -> F.fprintf fmt "%a::%a" pp_value v1 pp_value v2
   | Tuple list -> F.fprintf fmt "(%a)" (pp_list "" "," pp_value) list
   | FunClos(env,s,bk) -> F.fprintf fmt "FunClos(%a,%s,%a)" pp_env env s pp_block bk
   | Struct (s,list) -> F.fprintf fmt "Struct(%s,[%a])" s pp_env list
+  | _ -> F.fprintf fmt "[%a]" (pp_list0 pp_value) (cons_to_list v)
 
+and cons_to_list v =
+  match v with
+  | Nil -> []
+  | Cons(v1,v2) -> v1::(cons_to_list v2)
+  | _ -> print_endline "SOMETHING-WRONG in cons_to_list"; failwith ""
+  
 (* and pp_value_struct1 fmt (s,t,v) = pp_tuple3 pp_string pp_type pp_value fmt (s,t,v) *)
 
 (* pattern *)
@@ -123,10 +128,10 @@ and pp_block fmt (bk:Program.bk) =
 and pp_expr_patlist1 fmt (p,bk) = pp_tuple2 pp_pat pp_block fmt (p,bk)
 
 (* environment *)
-and pp_env fmt (env:Program.env) = pp_list0 (pp_tuple3 pp_string pp_type (pp_opt "Null" pp_value)) fmt env
+and pp_env fmt (env:Program.env) = pp_list00_bracket (pp_tuple3 pp_string pp_type (pp_opt "Null" pp_value)) fmt env
          
 (* type environment *)
-and pp_tenv fmt (tenv:Program.tenv) = pp_list0 (pp_tuple2 pp_type pp_type) fmt tenv
+and pp_tenv fmt (tenv:Program.tenv) = pp_list00_bracket (pp_tuple2 pp_type pp_type) fmt tenv
 
 (* type equals *)
 and pp_tequals fmt (tequals:Program.tequals) = pp_list "" "\n" (pp_tuple2 pp_type pp_type) fmt tequals

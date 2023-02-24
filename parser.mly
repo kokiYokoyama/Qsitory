@@ -19,7 +19,10 @@
     | P.Tuple tt, _ -> P.Tuple (tt@[t2])
     | _,P.Tuple tt -> P.Tuple (t1::tt)
     | _,_ -> P.Tuple [t1;t2]
-                                         
+
+  let result: Result.t = { value = None; eenv = None; tenv = None }
+
+    
 (*
   type oneline = Prog of Program.e list | ProgHead of Program.e list -> Program.e
  *)
@@ -88,8 +91,10 @@
 %token TpBOOL   // "bool"
 %token TpUNIT   // "unit"
 %token TpLIST   // "list"
-
-            
+%token TESTeenv // "#EEnv:"
+%token TESTtenv // "#TEnv:" 
+%token TESTvalue// "#Value:" 
+ 
 %token NEWLINE  // '\n'
 %token EOF 
             
@@ -105,7 +110,8 @@
 %nonassoc LPAREN
 
 %start main
-%type <Syntax.Program.e list> main;
+%type <Syntax.Program.e list * Syntax.Result.t> main;
+%type <Syntax.Program.e list> expressions;      
 %type <Syntax.Program.t> qtype
 //%type <exp> expression              
 //%type <pat> pattern
@@ -113,7 +119,10 @@
 %%
 // 
 main:  
-  | eee = list(expression_newline); eof { List.flatten eee }
+  | ee = expressions; manual_test; eof { (ee,result) }
+;
+expressions:  
+  | eee = list(expression_newline) { List.flatten eee }
 ;
 expression:
   | q = patexp { unpackExp q }
@@ -199,8 +208,8 @@ patexp:
          (pOpt,eOpt)
         }
 /// Tuple / Null / Single
-  | NULL           { packExp P.Null }    
-  | LPAREN; RPAREN { packExp P.Null }
+  | NULL           { packExp eNull }    
+  | LPAREN; RPAREN { packExp eNull }
   | LPAREN; q = patexp; RPAREN { q }
   | LPAREN; q1 = patexp; COMMA; q2 = patexp; qq = list(COMMA; q = patexp {q}); RPAREN
        {
@@ -322,3 +331,48 @@ match_clauses_suite:
   | option(BAR); cc = separated_nonempty_list(BAR, c = match_clause_simple { c }) { cc }
   | NEWLINE; INDENT; cc = nonempty_list(BAR; c = match_clause {c}); DEDENT { cc }
 ;
+value:
+  | n = INT    { vInt n }
+  | d = FLOAT  { vDouble d }
+  | s = STRING { vString s }
+  | TRUE  { vTrue }
+  | FALSE { vFalse }
+  | NULL { vNull }    
+  | LPAREN; RPAREN { vNull }
+  | LPAREN; v = value; RPAREN { v }
+  | LPAREN; v1 = value; COMMA; v2 = value; vv = list(COMMA; v = value {v}); RPAREN { vTuple (v1::v2::vv) }
+  | NIL { vNil }    
+  | v1 = value; COLCOL; v2 = value { vCons(v1,v2) }
+  | LBRACKET; vv = separated_list(COMMA,value); RBRACKET { List.fold_right (fun v1 v2 -> vCons(v1,v2)) vv vNil }
+// Write struct value!    
+//
+// Write function closure!
+//
+;
+fldtp:
+  | LPAREN; fld = IDENT0; COMMA; tp = qtype; RPAREN { (fld,tp) }
+;
+structenv:      
+  | LBRACKET; body = separated_list(COMMA,fldtp); RBRACKET { body }
+;
+tenv_one:
+  | LPAREN; sName = IDENT1; COMMA; strEnv = structenv; RPAREN { (tMVar sName, tStruct strEnv) }
+;
+tenv:
+  | LBRACKET; body = separated_list(COMMA,tenv_one); RBRACKET { body }
+;
+vartpvalue:
+  | LPAREN; x = IDENT0; COMMA; tp = qtype; COMMA; v = value; RPAREN { (x,tp,Some v) }
+;
+eenv:      
+  | LBRACKET; body = separated_list(COMMA,vartpvalue); RBRACKET { body }
+;
+manual_test_one:
+  | TESTeenv;  e = eenv;  nonempty_list(NEWLINE) { Result.setEenv result e }
+  | TESTtenv;  t = tenv;  nonempty_list(NEWLINE) { Result.setTenv result t }
+  | TESTvalue; v = value; nonempty_list(NEWLINE) { Result.setValue result v }
+;
+manual_test:
+  | list(manual_test_one) { () }
+;
+  

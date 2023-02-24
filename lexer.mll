@@ -134,14 +134,22 @@ let float = natnum '.' digit*
                                
 rule tokens = parse
   | "int"     { addMemo "tpINT"; [TpINT] }
+  | "Int"     { addMemo "tpINT"; [TpINT] }          
   | "string"  { addMemo "tpSTRING"; [TpSTRING] }
+  | "String"  { addMemo "tpSTRING"; [TpSTRING] }  
   | "double"  { addMemo "tpDOUBLE"; [TpDOUBLE] }
+  | "Double"  { addMemo "tpDOUBLE"; [TpDOUBLE] }  
   | "bool"    { addMemo "tpBOOL"; [TpBOOL] }
+  | "Bool"    { addMemo "tpBOOL"; [TpBOOL] }  
   | "unit"    { addMemo "tpUNIT"; [TpUNIT] }
+  | "Unit"    { addMemo "tpUNIT"; [TpUNIT] }  
   | "list"    { addMemo "tpLIST"; [TpLIST] }
+  | "List"    { addMemo "tpLIST"; [TpLIST] }
   
   | "true"    { addMemo "TRUE"; [TRUE] }
+  | "True"    { addMemo "TRUE"; [TRUE] }  
   | "false"   { addMemo "FALSE"; [FALSE] }
+  | "False"   { addMemo "FALSE"; [FALSE] }  
   | "while"   { addMemo "WHILE"; [WHILE] }
   | "for"     { addMemo "FOR"; [FOR] }
   | "fordict" { addMemo "FORDICT"; [FORDICT] }
@@ -190,6 +198,9 @@ rule tokens = parse
   | ".."      { addMemo "DOTDOT"; [DOTDOT] }
   | ','       { addMemo "COMMA"; [COMMA] }  
   | "_"       { addMemo "WILD"; [WILD] }
+  | "#EEnv:"  { addMemo "TESTeenv"; [TESTeenv] }
+  | "#TEnv:"  { addMemo "TESTtenv"; [TESTtenv] }  
+  | "#Value:" { addMemo "TESTvalue"; [TESTvalue] }  
   | ident0    { let id = Lexing.lexeme lexbuf in
                 addMemo (F.sprintf "Id(%s)" id);
                 [IDENT0 id] }

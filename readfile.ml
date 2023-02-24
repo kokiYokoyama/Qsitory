@@ -56,32 +56,59 @@ let parse str =
      F.printf "@[\n\nUnknown Parse error: %S@." (Lexing.lexeme lexbuf);
      exit 0
 
+(* result from Qsitory *)
+let qResult: Result.t = { value = None; eenv = None; tenv = None }
+     
 let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) =
   match ee with
-  |[] -> Format.printf "finish"
-  |e::ee1 ->
+  | [] -> Format.printf "finish"
+  | e::ee1 ->
     Format.printf "@[式\n%a\n@." P.pp_expr e;
     let (tequals,n) = expr_tval e env tenv [] 0 in
     Format.printf "@[制約リスト\n%a\n@." P.pp_tequals tequals;
     begin
       match unif tequals [] with
-      |Some solutions ->
+      | Some solutions ->
         Format.printf "@[単一化後\n%a\n@." P.pp_tequals solutions;
         let (env1,tenv1) = arrange_EnvAndTenv e solutions env tenv in
         Format.printf "@[環境情報整理\n[%a]\n@." P.pp_env env1;
         Format.printf "@[型環境情報整理\n[%a]\n@." P.pp_tenv tenv1;
         
         let (v,env2,tenv2) = expr_eval e env1 tenv1 in
+        qResult.value <- Some v;
+        qResult.eenv <- Some env2;
+        qResult.tenv <- Some tenv2;
         Format.printf "@[評価後\n%a\n" (fun _ -> print_evalResult) (v,env2,tenv2);
         (* Format.printf "@[ローカル環境数\n%i\n@." (List.length env2); *)
         begin
           match ee1 with
-          |[] -> print_evalResult (v,env2,tenv2)
-          |_ -> main_interpreter ee1 env2 tenv2
+          | [] -> print_evalResult (v,env2,tenv2)
+          | _ -> main_interpreter ee1 env2 tenv2
         end
-      |None -> raise TypeError
+      | None -> raise TypeError
     end
-    
+
+let do_test (myResult: Result.t) =
+  Format.printf "@[\n** Test Report **@.";
+  match myResult.value, myResult.eenv, myResult.tenv with
+  | None,None,None ->
+     Format.printf "@[No given expected result\nFinish@.";
+  | _,_,_ ->
+     Format.printf "@[[Qsitory's Output]@.";
+     doIfNotNone (fun v -> Format.printf "@[#Value: %a@." P.pp_value v) qResult.value;
+     doIfNotNone (fun v -> Format.printf "@[#Eenv: %a@." P.pp_env v) qResult.eenv;
+     doIfNotNone (fun v -> Format.printf "@[#Tenv: %a@." P.pp_tenv v) qResult.tenv;
+     Format.printf "@[\n[Expected Output]@.";
+     if !R.doubleValue then Format.printf "@[Warning: Double set of manual Value@." else ();
+     if !R.doubleEenv  then Format.printf "@[Warning: Double set of manual Eenv@." else ();     
+     if !R.doubleTenv  then Format.printf "@[Warning: Double set of manual Tenv@." else ();
+     doIfNotNone (fun v -> Format.printf "@[#Value: %a@." P.pp_value v) myResult.value;
+     doIfNotNone (fun v -> Format.printf "@[#Eenv: %a@." P.pp_env v) myResult.eenv;
+     doIfNotNone (fun v -> Format.printf "@[#Tenv: %a@." P.pp_tenv v) myResult.tenv;
+     Format.printf "@[\n[Result]@.";
+     match eq_result qResult myResult with
+     | true  -> Format.printf "@[OK@."
+     | false -> Format.printf "@[NG@."
     
 let interpreter filename =
   F.printf "@[*****************************@.";
@@ -91,15 +118,15 @@ let interpreter filename =
   F.printf "@[*****************************\n@.";
   try
     let str = inputstr_file filename in (* filename の中身を読む *)
-    let ee = parse str in (* 読んだ中身を構文解析して結果を e とする *)
+    let (ee,myResult) = parse str in (* 読んだ中身を構文解析して結果を e とする *)
     doIfDebug "PARSING" print_endline ">> Parsed Result (internal data)";
     doIfDebug "PARSING" (F.printf "@[%a\n@." (pp_list "" "\n" (fun _ -> print_expr))) ee; (* expr 型 e を表示する *)
-    main_interpreter ee [] []
+    main_interpreter ee [] [];
+    doIfDebug "TESTMODE" do_test myResult
     (* match main_tval ee [] [] with
      * |tenv -> main_eval ee [] tenv *)
     (* main_eval ee [] [] *)
-    (* print_env (main_tval ee [] []) *)
-    
+    (* print_env (main_tval ee [] []) *)    
         
     (*
     match (Syntax.tval e [] [] 0) with
@@ -123,14 +150,14 @@ let interpreter filename =
   | NotMatchExpressionError -> print_endline "this expression not MatchExp"; exit 0
   | UnifFail -> print_endline "fail unif program"; exit 0
  *)
-  |Error1 -> print_endline "Exception: Error1"; exit 0
-  |Error2 -> print_endline "Exception: Error2"; exit 0
-  |Error3 -> print_endline "Exception: Error3"; exit 0
-  |Error4 -> print_endline "Exception: Error4"; exit 0
-  |Error5 -> print_endline "Exception: Error5"; exit 0
-  |Error6 -> print_endline "Exception: Error6"; exit 0
-  (* |NoValueError -> print_endline "Exception: NoValueError"; exit 0 *)
-  |OperateTypeError -> print_endline "Exception: OperateTypeError"; exit 0
+  | Error1 -> print_endline "Exception: Error1"; exit 0
+  | Error2 -> print_endline "Exception: Error2"; exit 0
+  | Error3 -> print_endline "Exception: Error3"; exit 0
+  | Error4 -> print_endline "Exception: Error4"; exit 0
+  | Error5 -> print_endline "Exception: Error5"; exit 0
+  | Error6 -> print_endline "Exception: Error6"; exit 0
+  (* | NoValueError -> print_endline "Exception: NoValueError"; exit 0 *)
+  | OperateTypeError -> print_endline "Exception: OperateTypeError"; exit 0
   | _ -> print_endline "Exception: Eval error"; exit 0
 ;;
 

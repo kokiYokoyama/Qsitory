@@ -18,7 +18,7 @@ let parse_opt str =
   let lexbuf = Lexing.from_string str in
   try
     Lexer.inIndent := Lexer.nextCharIs [' ';'\t'] lexbuf;
-    Some (Parser.main cache lexbuf)
+    Some (fst @@ Parser.main cache lexbuf)
   with
   | _ ->
      (* doIfDebug "LEXING" print_newline (); *)

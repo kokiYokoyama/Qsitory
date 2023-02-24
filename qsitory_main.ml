@@ -18,7 +18,8 @@ let msgUsage = "USAGE: qsitory [-f <file>]\n"
 let speclist = [
     ("-f", Arg.String set_filename, "Input file");
     ("-lex", Arg.Unit (fun _ -> addDebugOpt "LEXING"), "Set lexing debug mode");
-    ("-parse", Arg.Unit (fun _ -> addDebugOpt "PARSING"), "Set parsing debug mode");    
+    ("-parse", Arg.Unit (fun _ -> addDebugOpt "PARSING"), "Set parsing debug mode");
+    ("-test", Arg.Unit (fun _ -> addDebugOpt "TESTMODE"), "Set test mode");
 ]
 
 let () =
