@@ -344,7 +344,7 @@ else :
 //string : name = "program"
 //(name,since,where) = ("Qsitory",2022,"Japan")
 
-//x=1
+x=1
 //x="string"
 //1
 

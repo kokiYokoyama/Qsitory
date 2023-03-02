@@ -59,7 +59,7 @@ let parse str =
 (* result from Qsitory *)
 let qResult: Result.t = { value = None; eenv = None; tenv = None }
      
-let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) =
+let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.tenv) (an:int) =
   match ee with
   | [] -> Format.printf "finish"
   | e::ee1 ->
@@ -69,6 +69,8 @@ let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.te
     begin
       match unif tequals [] with
       | Some solutions ->
+        let (solutions1,an1) = arrange_solutions solutions an in
+        Format.printf "@[多相型変換後\n%a\n@." P.pp_tequals solutions1;
         Format.printf "@[単一化後\n%a\n@." P.pp_tequals solutions;
         let (env1,tenv1) = arrange_EnvAndTenv e solutions env tenv in
         Format.printf "@[環境情報整理\n[%a]\n@." P.pp_env env1;
@@ -83,7 +85,7 @@ let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.te
         begin
           match ee1 with
           | [] -> print_evalResult (v,env2,tenv2)
-          | _ -> main_interpreter ee1 env2 tenv2
+          | _ -> main_interpreter ee1 env2 tenv2 an1
         end
       | None -> raise TypeError
     end
@@ -121,7 +123,7 @@ let interpreter filename =
     let (ee,myResult) = parse str in (* 読んだ中身を構文解析して結果を e とする *)
     doIfDebug "PARSING" print_endline ">> Parsed Result (internal data)";
     doIfDebug "PARSING" (F.printf "@[%a\n@." (pp_list "" "\n" (fun _ -> print_expr))) ee; (* expr 型 e を表示する *)
-    main_interpreter ee [] [];
+    main_interpreter ee [] [] 0;
     doIfDebug "TESTMODE" do_test myResult
     (* match main_tval ee [] [] with
      * |tenv -> main_eval ee [] tenv *)
@@ -158,7 +160,7 @@ let interpreter filename =
   | Error6 -> print_endline "Exception: Error6"; exit 0
   (* | NoValueError -> print_endline "Exception: NoValueError"; exit 0 *)
   | OperateTypeError -> print_endline "Exception: OperateTypeError"; exit 0
-  | _ -> print_endline "Exception: Eval error"; exit 0
+  (* | _ -> print_endline "Exception: Eval error"; exit  *)
 ;;
 
 
