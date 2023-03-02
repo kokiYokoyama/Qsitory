@@ -109,7 +109,7 @@ module Result = struct
   let setTenv r tenv = r.tenv <- Some tenv
 
 end
-              
+module R = Result
                     
 (* print------------------------------------------------------------------ *)
 
