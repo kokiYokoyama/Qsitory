@@ -356,7 +356,7 @@ structenv:
   | LBRACKET; body = separated_list(COMMA,fldtp); RBRACKET { body }
 ;
 tenv_one:
-  | LPAREN; sName = IDENT1; COMMA; strEnv = structenv; RPAREN { (tMVar sName, tStruct strEnv) }
+  | LPAREN; sName = IDENT1; COMMA; strEnv = structenv; RPAREN { (tMT sName, tStruct strEnv) }
 ;
 tenv:
   | LBRACKET; body = separated_list(COMMA,tenv_one); RBRACKET { body }

@@ -59,19 +59,28 @@ end;;
 
 module P = Program
 type exp = P.e
-type pat = P.p         
+type pat = P.p
+type value = P.v
 let pNil: pat = P.Nil
 let eNil: exp = P.Nil
+let vNil: value = P.Nil
+let eCons(e1,e2): exp = P.Cons(e1,e2)                
+let pCons(p1,p2): pat = P.Cons(p1,p2)
+let vCons(v1,v2): value = P.Cons(v1,v2)
 let eVar v: exp = P.Var v
-let pVar v: pat = P.Var v
+let pVar v: pat = P.Var v                
 let eTrue: exp = P.Bool true
 let pTrue: pat = P.Bool true
+let vTrue: value = P.Bool true
 let eFalse: exp = P.Bool false
 let pFalse: pat = P.Bool false
+let vFalse: value = P.Bool false                
 let eInt n: exp = P.Int n
 let pInt n: pat = P.Int n
+let vInt n: value = P.Int n
 let eDouble d: exp = P.Double d
 let pDouble d: pat = P.Double d
+let vDouble d: value = P.Double d
 let eString s: exp = P.String s
 let pString s: pat = P.String s
 let vString s: P.v = P.String s
@@ -83,8 +92,25 @@ let tBool: P.t = P.Bool
 let tString: P.t = P.String
 let tUnit: P.t = P.Unit
 let tStruct env: P.t = P.Struct env
-let tTuple tt : P.t = P.Tuple tt                    
-  
+let tTuple tt : P.t = P.Tuple tt
+let vTuple vv : value = P.Tuple vv
+let eNull: exp = P.Null                      
+let vNull: value = P.Null
+let tMT s: P.t = P.MT s
+
+module Result = struct
+
+  type t = { mutable value:P.v option; mutable eenv:P.env option; mutable tenv: P.tenv option; }
+
+  let setValue r v = r.value <- Some v
+                   
+  let setEenv r eenv = r.eenv <- Some eenv
+                    
+  let setTenv r tenv = r.tenv <- Some tenv
+
+end
+              
+                    
 (* print------------------------------------------------------------------ *)
 
 (* operator *)
