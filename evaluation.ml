@@ -370,10 +370,9 @@ and findMyType (tenv:Program.tenv) (list:(string * Program.t) list) (flist:Progr
     begin
       match t with
       |T(s1) ->
-        begin
-          match makeStructEnv s tenv flist with
-          |flist2 -> findMyType tenv list1 ((s,t,Some (Struct(s1,flist2)))::flist)
-        end
+        let flist2 = makeStructEnv s tenv flist in
+        findMyType tenv list1 ((s,t,Some (Struct(s1,flist2)))::flist)
+
       |_ -> findMyType tenv list1 ((s,t,None)::flist)
     end                                            
   |[] -> flist
@@ -429,11 +428,11 @@ and updateFids (ins_n:string) (fids:string list) (v:Program.v) (env:Program.env)
     begin
       match fids with
       |fi_n::[] -> (ins_n,(find_type env ins_n),Some (Struct(st_n,((fi_n,(find_type field fi_n),Some v)::(find_remove field fi_n [] )))))::(find_remove env ins_n [])
+                 
       |fi_n::fids1 ->
-        begin
-          match updateFids fi_n fids1 v field with
-          |field1 -> ((ins_n,(find_type env ins_n),Some (Struct(st_n,field1)))::(find_remove env ins_n []))
-        end
+        let field1 = updateFids fi_n fids1 v field in
+        ((ins_n,(find_type env ins_n),Some (Struct(st_n,field1)))::(find_remove env ins_n []))
+        
       |_ -> raise Error
     end
   |_ -> raise Error
@@ -885,7 +884,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
 
   |Null -> ((((t n),Unit)::tequals),n+1)
 
-  |Nil -> ((((t n),(List(Any)))::tequals),n)
+  |Nil -> ((((t n),(List(t (n+1))))::tequals),n+1)
 
   |Cons(e1,e2) ->
     let (tequals1,n1) =expr_tval e1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) in
@@ -1040,7 +1039,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
     let t1 = find_type_structEnv structEnv s in
     ((((t n),t1)::tequals1),n1)
     
-  |UseIns2(e1,e2) -> ((((t n),Ind)::tequals),n+1)
+  |UseIns2(e1,e2) -> (tequals,n+1)
     
   (* |Block(elist) ->
    *   begin
@@ -1197,9 +1196,9 @@ and pat_tval (p:Program.p) (env:Program.env) (tenv:Program.tenv) (tequals:Progra
 
   |Var s -> ((((t n),(find_type env s))::tequals),n+1)
 
-  |Nil -> ((((t n),(List Any))::tequals),n)
+  |Nil -> ((((t n),(List (t (n+1))))::tequals),n+1)
 
-  |Wild -> ((((t n),Any)::tequals),n)
+  |Wild -> ((((t n),(t (n+1)))::tequals),n+1)
 
   |Cons(p1,p2) ->
     let (tequals1,n1) = pat_tval p1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) in
@@ -1581,8 +1580,8 @@ and unif (tequals:Program.tequals) (solutions:Program.tequals) =
       |true -> unif tequals1 solutions
       |false -> None
     end
-  |(Any,t)::tequals1 -> unif tequals1 solutions
-  |(t,Any)::tequals1 -> unif tequals1 solutions
+  (* |(Any,t)::tequals1 -> unif tequals1 solutions
+   * |(t,Any)::tequals1 -> unif tequals1 solutions *)
   |(t3,t4)::tequals1 -> None
 
 (* unif's function!------------------------------------------------------- *)
@@ -1599,15 +1598,15 @@ and changeType (s: string) (t: Program.t) (t1: Program.t) =
   | Fun(t11,t12) -> Fun (changeType s t t11, changeType s t t12)
   | List t11 -> List (changeType s t t11)
   | Tuple tt -> Tuple (List.map (changeType s t) tt)
-  | Any ->
-     begin
-       match t with
-       | T s1 -> t1
-       | Unit -> t1
-       | Any -> t1
-       | List Any -> t1
-       | _ -> t
-     end
+  (* | Any ->
+   *    begin
+   *      match t with
+   *      | T s1 -> t1
+   *      | Unit -> t1
+   *      | Any -> t1
+   *      | List Any -> t1
+   *      | _ -> t
+   *    end *)
   | _ -> t1
 
 and changeTequals (s:string) (t:Program.t) (tequals:Program.tequals) :Program.tequals =
@@ -1953,39 +1952,41 @@ and delete_value_env (s:string) (t:Program.t) (v:Program.v option) :(string * Pr
 
 (* *********************************************************************** *)
 
-(* let rec arrange_solutions (solutions:Program.tequals) (n:int) :(Program.tequals * int) =
- *   match solutions with
- *   |(t1,t2)::solutions1 ->
- *     begin
- *       match add_type t2 n [] with
- *       |(t3,n1,fs1) ->
- *         begin
- *           match solutions1 with
- *           |[] -> (((t1,t3)::fs1),n1)
- *           |_ ->
- *             begin
- *               match arrange_solutions solutions1 n1 with
- *               |(solutions2,n2) -> (((t1,t3)::(solutions2@fs1)),n2)
- *             end
- *         end
- *     end
- *   |_ -> raise Error
- * 
- * and add_type (t2:Program.t) (n:int) (fs:Program.tequals) :(Program.t * int * Program.tequals) =
- *   match t2 with
- *   |T s1 -> ((a n),(n+1),fs)
- *   |Fun((t3),(t4)) ->
- *     begin
- *       match add_type t3 n fs with
- *       |(t5,n1,fs1) ->
- *         begin
- *           match add_type t4 n1 fs with
- *           |(t6,n2,fs2) -> (Fun(t5,t6),n2,((t4,t6)::(t3,t5)::fs2))
- *         end
- *     end
- *   |_ -> (t2,n,fs)
- * 
- * (\* envのT(s)を具体的なtypeに直す *\)
+and a (tn:int) :Program.t = A ("A" ^ string_of_int(tn))
+                          
+and arrange_solutions (solutions:Program.tequals) (n:int) :(Program.tequals * int) =
+  match solutions with
+  |(t1,t2)::solutions1 ->
+    begin
+      match add_type t2 n [] with
+      |(t3,n1,fs1) ->
+        begin
+          match solutions1 with
+          |[] -> (((t1,t3)::fs1),n1)
+          |_ ->
+            begin
+              match arrange_solutions solutions1 n1 with
+              |(solutions2,n2) -> (((t1,t3)::(solutions2@fs1)),n2)
+            end
+        end
+    end
+  |_ -> raise Error
+
+and add_type (t2:Program.t) (n:int) (fs:Program.tequals) :(Program.t * int * Program.tequals) =
+  match t2 with
+  |T s1 -> ((a n),(n+1),fs)
+  |Fun((t3),(t4)) ->
+    begin
+      match add_type t3 n fs with
+      |(t5,n1,fs1) ->
+        begin
+          match add_type t4 n1 fs with
+          |(t6,n2,fs2) -> (Fun(t5,t6),n2,((t4,t6)::(t3,t5)::fs2))
+        end
+    end
+  |_ -> (t2,n,fs)
+
+(* (\* envのT(s)を具体的なtypeに直す *\)
  * and arrange_env (env:Program.env) (solutions:Program.tequals) (fenv:Program.env) :Program.env =
  *   match env with
  *   |(s,t,v)::env1 ->
