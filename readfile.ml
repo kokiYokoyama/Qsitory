@@ -79,7 +79,7 @@ let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.te
         begin
           match ee1 with
           |[] -> print_evalResult (v,env2,tenv2)
-          |_ -> main_interpreter ee1 env2 tenv2
+          |_ -> main_interpreter ee1 env2 tenv2 an1
         end
       |None -> raise TypeError
     end

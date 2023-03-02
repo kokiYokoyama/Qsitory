@@ -18,7 +18,7 @@ let parse_opt str =
   let lexbuf = Lexing.from_string str in
   try
     Lexer.inIndent := Lexer.nextCharIs [' ';'\t'] lexbuf;
-    Some (fst @@ Parser.main cache lexbuf)
+    Some (Parser.main cache lexbuf)
   with
   | _ ->
      (* doIfDebug "LEXING" print_newline (); *)
@@ -52,9 +52,10 @@ type scanner =
     mutable line: string;
     mutable env: Program.env;
     mutable tenv: Program.tenv;
+    mutable an: int;
   }
 ;;
-let sc: scanner = { freshLine = true; readFinish = false; input = ""; line = ""; env = []; tenv = []; }
+let sc: scanner = { freshLine = true; readFinish = false; input = ""; line = ""; env = []; tenv = []; an = 0 }
 ;;
 let resetScanner() =
   sc.freshLine <- true;
@@ -110,10 +111,12 @@ let interpreter () =
            let (tequals,n) = Evaluation.expr_tval e sc.env sc.tenv [] 0 in
            match Evaluation.unif tequals [] with
            | Some solutions ->
+             let (solutions1,an1) = Evaluation.arrange_solutions solutions sc.an in
              let (env1,tenv1) = Evaluation.arrange_EnvAndTenv e solutions sc.env sc.tenv in
              let (v,ev,tev) = Evaluation.expr_eval e env1 tenv1 in
              sc.env <- ev;
              sc.tenv <- tev;
+             sc.an <- an1;
              valueOpt := Some v
            | None -> raise TypeError
          ) ee;
