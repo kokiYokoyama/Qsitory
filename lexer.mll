@@ -145,6 +145,7 @@ rule tokens = parse
   | "Unit"    { addMemo "tpUNIT"; [TpUNIT] }  
   | "list"    { addMemo "tpLIST"; [TpLIST] }
   | "List"    { addMemo "tpLIST"; [TpLIST] }
+  | "Tuple"   { addMemo "tpLUPLE"; [TpTUPLE] }
   
   | "true"    { addMemo "TRUE"; [TRUE] }
   | "True"    { addMemo "TRUE"; [TRUE] }  
@@ -198,9 +199,10 @@ rule tokens = parse
   | ".."      { addMemo "DOTDOT"; [DOTDOT] }
   | ','       { addMemo "COMMA"; [COMMA] }  
   | "_"       { addMemo "WILD"; [WILD] }
-  | "#EEnv:"  { addMemo "TESTeenv"; [TESTeenv] }
-  | "#TEnv:"  { addMemo "TESTtenv"; [TESTtenv] }  
-  | "#Value:" { addMemo "TESTvalue"; [TESTvalue] }  
+  | "#EEnv:"  { addMemo "COMeenv"; [COMeenv] }
+  | "#TEnv:"  { addMemo "COMtenv"; [COMtenv] }  
+  | "#Value:" { addMemo "COMvalue"; [COMvalue] }  
+  | "#Check:" { addMemo "COMcheck"; [COMcheck] }  
   | ident0    { let id = Lexing.lexeme lexbuf in
                 addMemo (F.sprintf "Id(%s)" id);
                 [IDENT0 id] }

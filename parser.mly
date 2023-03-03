@@ -90,10 +90,14 @@
 %token TpSTRING // "string"            
 %token TpBOOL   // "bool"
 %token TpUNIT   // "unit"
-%token TpLIST   // "list"
-%token TESTeenv // "#EEnv:"
-%token TESTtenv // "#TEnv:" 
-%token TESTvalue// "#Value:" 
+%token TpLIST   // "list"/"List"
+%token TpTUPLE  // "Tuple"
+ 
+// Commands 
+%token COMeenv // "#EEnv:"
+%token COMtenv // "#TEnv:" 
+%token COMvalue// "#Value:" 
+%token COMcheck// "#Check:" 
  
 %token NEWLINE  // '\n'
 %token EOF 
@@ -331,6 +335,8 @@ match_clauses_suite:
   | option(BAR); cc = separated_nonempty_list(BAR, c = match_clause_simple { c }) { cc }
   | NEWLINE; INDENT; cc = nonempty_list(BAR; c = match_clause {c}); DEDENT { cc }
 ;
+value_struct_one:
+  | LPAREN; fld = IDENT0; COMMA; tp = ctype; COMMA; v = value { (fld,tp,v) }
 value:
   | n = INT    { vInt n }
   | d = FLOAT  { vDouble d }
@@ -344,8 +350,7 @@ value:
   | NIL { vNil }    
   | v1 = value; COLCOL; v2 = value { vCons(v1,v2) }
   | LBRACKET; vv = separated_list(COMMA,value); RBRACKET { List.fold_right (fun v1 v2 -> vCons(v1,v2)) vv vNil }
-// Write struct value!    
-//
+//  | LBRACKET; body = separated_list(COMMA,ftv = value_struct_one {ftv}); RBRACKET {}
 // Write function closure!
 //
 ;
@@ -361,18 +366,43 @@ tenv_one:
 tenv:
   | LBRACKET; body = separated_list(COMMA,tenv_one); RBRACKET { body }
 ;
+ctype: // types for commands
+  | TpINT    { tInt }
+  | TpDOUBLE { tDouble }
+  | TpSTRING { tString }
+  | TpBOOL   { tBool }
+  | TpUNIT   { tUnit }
+  | tname = IDENT1 { P.MT tname }
+  | LPAREN; t = ctype; RPAREN { t }
+  | TpLIST; t = ctype { P.List t }
+  | TpTUPLE; LPAREN; tt = separated_list(COMMA,t = ctype {t}); RPAREN { tTuple tt }
+  | t0 = ctype; ARROW; t1 = ctype { P.Fun(t0,t1) }
+  | t1 = ctype; AST; t2 = ctype { tMergeTuple t1 t2 }
+  | STRUCT; tName = IDENT1 { P.T tName }    
+  | STRUCT; tName = IDENT1; LPAREN; RPAREN; COLON; ee = struct_suite
+      { let mkEnv1 e =
+         match e with
+         | P.Declrt1(tp,x,_) -> (x,tp)
+         | P.Declrt2(tp,x)   -> (x,tp)
+         | _ ->
+            let mes = "Non assignment-form cannot appear in a struct body" in
+            raise (ParseError ("Unexpected struct definition: " ^ mes))
+        in
+        tStruct (List.map mkEnv1 ee)
+      }
+;
+      
 vartpvalue:
-  | LPAREN; x = IDENT0; COMMA; tp = qtype; COMMA; v = value; RPAREN { (x,tp,Some v) }
+  | LPAREN; x = IDENT0; COMMA; tp = ctype; COMMA; v = value; RPAREN { (x,tp,Some v) }
 ;
 eenv:      
   | LBRACKET; body = separated_list(COMMA,vartpvalue); RBRACKET { body }
 ;
-manual_test_one:
-  | TESTeenv;  e = eenv;  nonempty_list(NEWLINE) { Result.setEenv result e }
-  | TESTtenv;  t = tenv;  nonempty_list(NEWLINE) { Result.setTenv result t }
-  | TESTvalue; v = value; nonempty_list(NEWLINE) { Result.setValue result v }
+command_one:
+  | COMeenv;  e = eenv;  nonempty_list(NEWLINE) { Result.setEenv result e }
+  | COMtenv;  t = tenv;  nonempty_list(NEWLINE) { Result.setTenv result t }
+  | COMvalue; v = value; nonempty_list(NEWLINE) { Result.setValue result v }
 ;
 manual_test:
-  | list(manual_test_one) { () }
+  | list(command_one) { () }
 ;
-  
