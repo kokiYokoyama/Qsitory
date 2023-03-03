@@ -1263,7 +1263,8 @@ and find_type_tequals2 (t:Program.t) (tequals:Program.tequals) :Program.t =
           |_ -> if String.equal s1 s2 then t2 else find_type_tequals2 t tequals1
         end
       |T s1,_ -> t
-      |_ -> raise Error
+      |A s1,_ -> t
+      |_ -> raise Error1
     end
   |[] -> t
 
@@ -1571,6 +1572,10 @@ and unif (tequals:Program.tequals) (solutions:Program.tequals) =
   |(T s1,t2)::tequals1 -> unif (changeTequals s1 t2 tequals1) ((T s1,t2)::(changeSolutions s1 t2 solutions))
   |(t2,T s1)::tequals1 -> unif (changeTequals s1 t2 tequals1) ((T s1,t2)::(changeSolutions s1 t2 solutions))
 
+  |(A s1,A s2)::tequals1 -> unif (changeTequals s1 ((A s2):Program.t) tequals1) ((A s1,A s2)::(changeSolutions s1 ((A s2):Program.t) solutions))
+  |(A s1,t2)::tequals1 -> unif (changeTequals s1 t2 tequals1) ((A s1,t2)::(changeSolutions s1 t2 solutions))
+  |(t2,A s1)::tequals1 -> unif (changeTequals s1 t2 tequals1) ((A s1,t2)::(changeSolutions s1 t2 solutions))
+
   |(Fun(t1,t2),Fun(t3,t4))::tequals1 -> unif ((t1,t3)::(t2,t4)::tequals1) solutions                                  
   |(List(t1),List(t2))::tequals1 -> unif ((t1,t2)::tequals1) solutions
   |(Tuple(tlist1),Tuple(tlist2))::tequals1 -> unif (tuple_unif tlist1 tlist2 tequals1) solutions
@@ -1580,8 +1585,6 @@ and unif (tequals:Program.tequals) (solutions:Program.tequals) =
       |true -> unif tequals1 solutions
       |false -> None
     end
-  (* |(Any,t)::tequals1 -> unif tequals1 solutions
-   * |(t,Any)::tequals1 -> unif tequals1 solutions *)
   |(t3,t4)::tequals1 -> None
 
 (* unif's function!------------------------------------------------------- *)
@@ -1593,20 +1596,12 @@ and unif (tequals:Program.tequals) (solutions:Program.tequals) =
 and changeType (s: string) (t: Program.t) (t1: Program.t) =
   match t1 with
   | T s1 when s = s1 -> t
+  | A s1 when s = s1 -> t
   | Operate(op,t11,t12) -> Operate (op , changeType s t t11 , changeType s t t12)
   | Return t11 -> Return (changeType s t t11) 
   | Fun(t11,t12) -> Fun (changeType s t t11, changeType s t t12)
   | List t11 -> List (changeType s t t11)
   | Tuple tt -> Tuple (List.map (changeType s t) tt)
-  (* | Any ->
-   *    begin
-   *      match t with
-   *      | T s1 -> t1
-   *      | Unit -> t1
-   *      | Any -> t1
-   *      | List Any -> t1
-   *      | _ -> t
-   *    end *)
   | _ -> t1
 
 and changeTequals (s:string) (t:Program.t) (tequals:Program.tequals) :Program.tequals =
@@ -1832,12 +1827,13 @@ and equal_type (t1:Program.t) (t2:Program.t) :bool =
   (* Format.printf "@[t1=%a\nt2=%a\n@." pp_type t1 pp_type t2; *)
   match t1,t2 with
   |T s1,T s2 when s1 = s2 -> true
+  |A s1,A s2 when s1 = s2 -> true
   |Int,Int -> true
   |Double,Double -> true
   |Bool,Bool -> true
   |String,String -> true
-  |t,Any -> true
-  |Any,t -> true
+  |t,A s1 -> true
+  |A s1,t -> true
   |Unit,Unit -> true
   |List t3,List t4 -> equal_type t3 t4
   |Tuple tlist1,Tuple tlist2 -> equal_type_tuple tlist1 tlist2
@@ -1908,14 +1904,13 @@ and arrange_EnvAndTenv (e:Program.e) (solutions:Program.tequals) (env:Program.en
    *     |_ -> raise Error
    *   end *)
 
-  |AOperate(aop,e1,e2) ->
+  |AOperate(aop,e1,e2) -> (* print_tequals solutions; *)
     begin
       match e1 with
-      |Var s -> (((s,(find_type_tequals (t 1) solutions),(find_op env s))::(find_remove env s [])),tenv)
+      |Var s -> (((s,(find_type_solutions (t 1) solutions),(find_op env s))::(find_remove env s [])),tenv)
       |_ -> raise Error
     end
-    
-
+ 
   (* |Dstruct(s,bk) ->
    *   let structData = makeStructTenv bk in
    *   (env,(((MT s),Struct(structData))::tenv)) *)
@@ -1923,6 +1918,21 @@ and arrange_EnvAndTenv (e:Program.e) (solutions:Program.tequals) (env:Program.en
   |_ -> (env,tenv)
 
 (* arrange_EnvAndTenv's functions **************************************** *)
+
+and find_type_solutions (t:Program.t) (solutions:Program.tequals) :Program.t =
+  let t2 = find_type_solutions2 t solutions in
+  begin
+    match t2 with
+    |List (T s2) -> List (find_type_solutions (find_type_solutions2 (T s2) solutions) solutions)
+    |Tuple (tlist) -> Tuple(tuple_ftt tlist solutions)
+    |_ -> t2
+  end
+
+and find_type_solutions2 (t:Program.t) (solutions:Program.tequals) :Program.t =
+  match t,solutions with
+  |T s,((T s1,t2)::solutions1) when String.equal s s1 -> t2
+  |T s,(_::solutions1) -> find_type_solutions2 t solutions1
+  |_,_ -> t
 
 (* and updateFids_tval (ins_n:string) (fids:string list) (t1:Program.t) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) :Program.env =
  *   match find_type env ins_n with
@@ -1984,6 +1994,9 @@ and add_type (t2:Program.t) (n:int) (fs:Program.tequals) :(Program.t * int * Pro
           |(t6,n2,fs2) -> (Fun(t5,t6),n2,((t4,t6)::(t3,t5)::fs2))
         end
     end
+  |List t3 ->
+    let (t4,n1,fs1) = add_type t3 n fs in
+    (List t4,n1,fs1)
   |_ -> (t2,n,fs)
 
 (* (\* envのT(s)を具体的なtypeに直す *\)

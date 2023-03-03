@@ -325,6 +325,8 @@ else :
 //2バイト文字に対応していないからエラー
 //i += "回"
 
+x = []
+x += 1
 //l=[[1]]
 //l=[ [1,2] , [3,4,5] ]
 //l+= [6,7,8,9]
@@ -344,7 +346,7 @@ else :
 //string : name = "program"
 //(name,since,where) = ("Qsitory",2022,"Japan")
 
-x=1
+//x=1
 //x="string"
 //1
 

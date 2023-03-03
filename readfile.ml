@@ -69,10 +69,10 @@ let rec main_interpreter (ee: Program.e list) (env:Program.env) (tenv:Program.te
     begin
       match unif tequals [] with
       | Some solutions ->
+        Format.printf "@[単一化後\n%a\n@." P.pp_tequals solutions;
         let (solutions1,an1) = arrange_solutions solutions an in
         Format.printf "@[多相型変換後\n%a\n@." P.pp_tequals solutions1;
-        Format.printf "@[単一化後\n%a\n@." P.pp_tequals solutions;
-        let (env1,tenv1) = arrange_EnvAndTenv e solutions env tenv in
+        let (env1,tenv1) = arrange_EnvAndTenv e solutions1 env tenv in
         Format.printf "@[環境情報整理\n[%a]\n@." P.pp_env env1;
         Format.printf "@[型環境情報整理\n[%a]\n@." P.pp_tenv tenv1;
         

@@ -112,7 +112,7 @@ let interpreter () =
            match Evaluation.unif tequals [] with
            | Some solutions ->
              let (solutions1,an1) = Evaluation.arrange_solutions solutions sc.an in
-             let (env1,tenv1) = Evaluation.arrange_EnvAndTenv e solutions sc.env sc.tenv in
+             let (env1,tenv1) = Evaluation.arrange_EnvAndTenv e solutions1 sc.env sc.tenv in
              let (v,ev,tev) = Evaluation.expr_eval e env1 tenv1 in
              sc.env <- ev;
              sc.tenv <- tev;
