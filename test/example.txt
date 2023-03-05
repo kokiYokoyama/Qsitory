@@ -103,16 +103,15 @@ z1.z.x=1
 a=z1.z.x
 */
 
-/*
 struct Struct1 :
    int : x
    int : y
 
-a=Struct1()
+struct Struct1 : a
 a.x=1
-//b=a.x
-b="a".."x"
-*/
+b=a.x
+a.z=2
+//b="a".."x"
 
 //return文により強制終了がされているか
 /*
@@ -198,11 +197,12 @@ z=function0(1) (2)
 */
 
 //引数が一つの関数の使用
+/*
 def function0 (int:x) :
   return x
 
 function0(1)
-
+*/
 /*
 i=0
 while i<5:

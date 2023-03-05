@@ -159,8 +159,8 @@ and print_aop (aop:Program.aop) =
 (* type *)
 and print_type (t:Program.t) =
   match t with
-  |T s -> Format.printf "T(%s)" s
-  |A s -> Format.printf "A(%s)" s
+  |T s -> Format.printf "%s" s
+  |A s -> Format.printf "%s" s
   |MT s -> Format.printf "MT(%s)" s
   |Unit -> Format.printf "Unit"
   |Int -> Format.printf "Int"

@@ -48,7 +48,8 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
   |Declrt2(t,s) ->
     begin
       match t with
-      |MT sn -> (Null,(updateEnv env s t (Some(Struct(sn,(makeStructEnv sn tenv []))))),tenv)
+      |MT sn ->
+        (Null,(updateEnv env s t (Some(Struct(sn,(makeStructEnv sn tenv []))))),tenv)
       |_ -> (Null,(updateEnv env s t None),tenv)
     end
 
@@ -87,12 +88,12 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
           |(Struct(sn,fenv),env2,tenv2) ->
             let tenv2 = update_tenv sn fi_n tenv t1 in
             let (ins_n,fids) = splitSF e1 [] in
-            (Null,(updateFids ins_n fids v1 env1),tenv2)
+            (Null,(updateFids ins_n fids v1 env2 tenv2),tenv2)
           |_ -> raise Error
         end
       |UseIns2(e3,e4) ->
         let (ins_n,fids) = splitSF2 e1 [] env tenv in
-        (Null,(updateFids (split_dp ins_n) fids v1 env1),tenv1)
+        (Null,(updateFids (split_dp ins_n) fids v1 env1 tenv1),tenv1)
       |_ -> raise Error
     end
     
@@ -246,7 +247,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
     (Null,(("rv",Any,Some v1)::env1),tenv1)
     
   |Dstruct(s,bk) ->
-    let structEnv = makeStructTenv bk in
+    let structEnv = makeStructTenv bk tenv in
     (Null,env,(((MT s),Struct(structEnv))::tenv))
     
   (* |MakeIns(s) -> (Struct(s,(makeStructEnv s tenv [])),env,tenv) *)
@@ -354,6 +355,22 @@ and find (env:Program.env) (s:string) :Program.v =
   |(s1,t,None)::env1 -> find env1 s 
   |[] -> raise NoValueError
 
+and find_type_tenv (tenv:Program.tenv) (st_n:string) (fi_n:string) :Program.t =
+  match tenv with
+  |((MT(st_n1),Struct(structEnv))::tenv1) ->
+    Format.printf "(@[%a\n@." pp_tenv tenv;
+    Format.printf "構造体(@[(%s,%s)\n@." st_n st_n1;
+    if String.equal st_n st_n1 then find_type_tenv2 structEnv fi_n else find_type_tenv tenv1 st_n fi_n
+  |[] -> raise NoValueError
+  |_ -> raise Error
+
+and find_type_tenv2 (structEnv:Program.structEnv) (fi_n:string) :Program.t =
+  match structEnv with
+  |((fi_n1,t)::structEnv1) ->
+    Format.printf "詳細(@[(%s,%s,%a)\n@." fi_n fi_n1 pp_type t;
+    if String.equal fi_n fi_n1 then t else find_type_tenv2 structEnv1 fi_n
+  |[] -> raise Error
+                            
 and find_fun (env:Program.env) (fenv:Program.env) :Program.env =
   match env with
   |(s,t,v)::env1 ->
@@ -369,8 +386,8 @@ and findMyType (tenv:Program.tenv) (list:(string * Program.t) list) (flist:Progr
   |(s,t)::list1 ->
     begin
       match t with
-      |T(s1) ->
-        let flist2 = makeStructEnv s tenv flist in
+      |MT(s1) ->
+        let flist2 = makeStructEnv s1 tenv flist in
         findMyType tenv list1 ((s,t,Some (Struct(s1,flist2)))::flist)
 
       |_ -> findMyType tenv list1 ((s,t,None)::flist)
@@ -422,16 +439,16 @@ and removeConsHd (vlist:Program.v list) (fvlist:Program.v list) :(Program.v list
 and updateEnv (env:Program.env) (s:string) (t:Program.t) (v:Program.v option) :Program.env =
   ((s,t,v)::(find_remove env s []))
 
-and updateFids (ins_n:string) (fids:string list) (v:Program.v) (env:Program.env) :Program.env =
+and updateFids (ins_n:string) (fids:string list) (v:Program.v) (env:Program.env) (tenv:Program.tenv) :Program.env =
   match find env ins_n with
   |Struct(st_n,field) ->
     begin
       match fids with
-      |fi_n::[] -> (ins_n,(find_type env ins_n),Some (Struct(st_n,((fi_n,(find_type field fi_n),Some v)::(find_remove field fi_n [] )))))::(find_remove env ins_n [])
+      |fi_n::[] -> (ins_n,MT(st_n),Some (Struct(st_n,((fi_n,(find_type_tenv tenv st_n fi_n),Some v)::(find_remove field fi_n [] )))))::(find_remove env ins_n [])
                  
       |fi_n::fids1 ->
-        let field1 = updateFids fi_n fids1 v field in
-        ((ins_n,(find_type env ins_n),Some (Struct(st_n,field1)))::(find_remove env ins_n []))
+        let field1 = updateFids fi_n fids1 v field tenv in
+        ((ins_n,MT(st_n),Some (Struct(st_n,field1)))::(find_remove env ins_n []))
         
       |_ -> raise Error
     end
@@ -445,7 +462,20 @@ and update_tenv (sn:string) (fi_n:string) (tenv:Program.tenv) (t1:Program.t) :Pr
   end
        
 and update_structEnv (structEnv:Program.structEnv) (fi_n:string) (t1:Program.t) :Program.structEnv =
-  ((fi_n,t1)::(find_remove_structEnv structEnv fi_n []))
+  begin
+    match judge_newfield structEnv fi_n with
+    |None -> ((fi_n,t1)::structEnv)
+    |Some t -> structEnv
+  end
+
+and judge_newfield (structEnv:Program.structEnv) (fi_n:string) :(Program.t) option =
+  begin
+    try
+      let t = List.assoc fi_n structEnv in
+      Some t
+    with
+    |Not_found -> None
+  end
               
 and expr_tuple_eval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv) :Program.v list =
   begin
@@ -859,6 +889,15 @@ and makeStructEnv (s:string) (tenv:Program.tenv) (flist:Program.env) :Program.en
   match List.assoc (MT(s):Program.t) tenv  with
   |Struct(list) -> findMyType tenv list flist
   |_ -> raise Error
+
+and makeStructTenv (bk:Program.bk) (tenv:Program.tenv) :Program.structEnv =
+  match block_eval bk [] tenv with
+  | (v,env,tenv) ->
+     List.map (fun (s,t,v) -> delete_value_env s t v) env
+
+and delete_value_env (s:string) (t:Program.t) (v:Program.v option) :(string * Program.t) =
+  (s,t)
+
     
 (* Expr_Tval-------------------------------------------------------------- *)
 
@@ -912,7 +951,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
     let (tequals1,n1) =  expr_tval e2 env tenv ((t (n+2),t1)::(t (n+1),t (n+2))::((t n),Unit)::tequals) (n+2) in
     begin
       try
-        expr_tval e1 env tenv ((t (n+1),t n1)::tequals) n1
+        expr_tval e1 env tenv ((t (n+1),t n1)::tequals1) n1
       with
       |NoValueError -> (tequals1,n1)
     end
@@ -1129,14 +1168,13 @@ and remove_list a list flist =
 
 and find_type (env:Program.env) (s:string) :Program.t =
   match env with
-  |(s1,t,v)::env1 ->
-    if String.equal s s1 then t else find_type env1 s
+  |(s1,t,v)::env1 -> if String.equal s s1 then t else find_type env1 s
   |[] -> raise NoValueError
 
 and find_type_structEnv (structEnv:Program.structEnv) (s:string) :Program.t =
   match structEnv with
   |(s1,t)::structEnv1 ->
-    if String.equal s s1 then t else find_type_structEnv structEnv s
+    if String.equal s s1 then t else find_type_structEnv structEnv1 s
   |[] -> raise NoValueError
 
 and find_structEnv (tenv:Program.tenv) (tequals:Program.tequals) (t1:Program.t) :Program.structEnv =
@@ -1471,6 +1509,8 @@ and unif (tequals:Program.tequals) (solutions:Program.tequals) =
   |(Bool,Bool)::tequals1 -> unif tequals1 solutions
   |(String,String)::tequals1 -> unif tequals1 solutions
   |(Unit,Unit)::tequals1 -> unif tequals1 solutions
+  |(Any,t)::tequals1 -> unif tequals1 solutions
+  |(t,Any)::tequals1 -> unif tequals1 solutions
   |(t,Operate(op,t1,t2))::tequals1 ->
     begin
       try
@@ -1915,14 +1955,6 @@ and find_type_solutions2 (t:Program.t) (solutions:Program.tequals) :Program.t =
  *       |_ -> raise Error
  *     end
  *   |_ ->raise Error *)
-
-and makeStructTenv (bk:Program.bk) :Program.structEnv =
-  match block_eval bk [] [] with
-  | (v,env,tenv) ->
-     List.map (fun (s,t,v) -> delete_value_env s t v) env
-
-and delete_value_env (s:string) (t:Program.t) (v:Program.v option) :(string * Program.t) =
-  (s,t)
 
 (* *********************************************************************** *)
 
