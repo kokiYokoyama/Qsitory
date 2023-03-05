@@ -160,7 +160,7 @@ qtype:
 /// Tuple types  
   | t1 = qtype; AST; t2 = qtype { tMergeTuple t1 t2 }
 /// Struct types
-  | STRUCT; tName = IDENT1 { P.T tName }    
+  | STRUCT; tName = IDENT1 { P.MT tName }    
   | STRUCT; tName = IDENT1; LPAREN; RPAREN; COLON; ee = struct_suite
       { let mkEnv1 e =
          match e with
@@ -278,7 +278,7 @@ patexp:
   | MATCH; q = patexp; COLON; cc = match_clauses_suite
        { packExp @@ P.Match(unpackExp q,cc) }
 /// Declaration / Declaration+Initialization
-  | STRUCT; tName = IDENT1; COLON; x = IDENT0 { packExp @@ P.Declrt2(P.T tName,x) }
+  | STRUCT; tName = IDENT1; COLON; x = IDENT0 { packExp @@ P.Declrt2(P.MT tName,x) }
   | tp = qtype; COLON; x = IDENT0; qOpt = option(EQ; q = patexp {q})
           {
             match qOpt with
@@ -372,13 +372,13 @@ ctype: // types for commands
   | TpSTRING { tString }
   | TpBOOL   { tBool }
   | TpUNIT   { tUnit }
-  | tname = IDENT1 { P.MT tname }
+  | tname = IDENT1 { P.T tname }
   | LPAREN; t = ctype; RPAREN { t }
   | TpLIST; t = ctype { P.List t }
   | TpTUPLE; LPAREN; tt = separated_list(COMMA,t = ctype {t}); RPAREN { tTuple tt }
   | t0 = ctype; ARROW; t1 = ctype { P.Fun(t0,t1) }
   | t1 = ctype; AST; t2 = ctype { tMergeTuple t1 t2 }
-  | STRUCT; tName = IDENT1 { P.T tName }    
+  | STRUCT; tName = IDENT1 { P.MT tName }    
   | STRUCT; tName = IDENT1; LPAREN; RPAREN; COLON; ee = struct_suite
       { let mkEnv1 e =
          match e with
