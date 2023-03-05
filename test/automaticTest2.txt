@@ -1,4 +1,3 @@
-/*
 a=1
 
 string : b = "B"
@@ -78,14 +77,16 @@ def function1 (int: x,int: y) :
 
 (x,y,z)=function1(2) (3)
 
-def function1 (int: x,int: y) :
+/*
+//他と一緒に実行するとエラー発生
+def function2 (int: x,int: y) :
    int : z=x+y
    if z<10 :
-     function1 (z) (5)
+     function2 (z) (5)
    else :
      z
 
-aa=function1 (2) (3)
+aa=function2 (2) (3)
 
 def f (int: x) :
    if x<3 :
@@ -98,6 +99,7 @@ def g (int: x) :
 
 bb = g (10)
 */
+
 struct AA :
    int : x
    int : y

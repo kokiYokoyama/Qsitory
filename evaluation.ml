@@ -1143,14 +1143,14 @@ and pat_tval (p:Program.p) (env:Program.env) (tenv:Program.tenv) (tequals:Progra
 
   |Nil -> ((((t n),(List (t (n+1))))::tequals),(n+2))
 
-  |Wild -> ((((t n),(t (n+1)))::tequals),(n+2))
+  |Wild -> ((((t n),Any)::tequals),(n+1))
 
   |Cons(p1,p2) ->
     let (tequals1,n1) = pat_tval p1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) in
     pat_tval p2 env tenv (((t (n1+1)),(t n))::tequals1) n1
 
   |Tuple list ->
-    let (tlist,tequals1,n1) = pat_tuple_tval list env tenv tequals n in
+    let (tlist,tequals1,n1) = pat_tuple_tval list env tenv tequals (n+1) in
     ((((t n),(Tuple tlist))::tequals1),n1)
   
 (* tval's function!------------------------------------------------------- *)
@@ -1232,13 +1232,13 @@ and pat_tuple_tval (plist:Program.p list) (env:Program.env) (tenv:Program.tenv) 
   begin
     match plist with
     |p::[] ->
-      let (tequals1,n1) = pat_tval p env tenv tequals (n+1) in
-      (((t n1)::[]),tequals1,n1)
+      let (tequals1,n1) = pat_tval p env tenv tequals n in
+      (((t n)::[]),tequals1,n1)
       
     |p::plist1 ->
-      let (tequals1,n1) = pat_tval p env tenv tequals (n+1) in
+      let (tequals1,n1) = pat_tval p env tenv tequals n in
       let (tlist,tequals2,n2) = pat_tuple_tval plist1 env tenv tequals1 n1 in
-      (((t n1)::[])@tlist,tequals2,n2)
+      (((t n)::[])@tlist,tequals2,n2)
     |_ -> raise Error
   end
 
@@ -1499,8 +1499,8 @@ and secondForDict_tval (paraList:string list) (tlist:Program.t list) (env:Progra
 (* Unif------------------------------------------------------------------- *)
 
 and unif (tequals:Program.tequals) (solutions:Program.tequals) =
-  (* Format.printf "%a_____________________\n" (fun _ -> print_tequals) tequals;
-   * Format.printf "%a\n" (fun _ -> print_tequals) solutions; *)
+  Format.printf "%a_____________________\n" (fun _ -> print_tequals) tequals;
+  Format.printf "%a\n" (fun _ -> print_tequals) solutions;
   match tequals with
   |[] -> Some solutions
 
@@ -1509,8 +1509,6 @@ and unif (tequals:Program.tequals) (solutions:Program.tequals) =
   |(Bool,Bool)::tequals1 -> unif tequals1 solutions
   |(String,String)::tequals1 -> unif tequals1 solutions
   |(Unit,Unit)::tequals1 -> unif tequals1 solutions
-  |(Any,t)::tequals1 -> unif tequals1 solutions
-  |(t,Any)::tequals1 -> unif tequals1 solutions
   |(t,Operate(op,t1,t2))::tequals1 ->
     begin
       try
@@ -1540,6 +1538,8 @@ and unif (tequals:Program.tequals) (solutions:Program.tequals) =
       |true -> unif tequals1 solutions
       |false -> None
     end
+  |(Any,t)::tequals1 -> unif tequals1 solutions
+  |(t,Any)::tequals1 -> unif tequals1 solutions
   |(t3,t4)::tequals1 -> None
 
 (* unif's function!------------------------------------------------------- *)
@@ -1551,6 +1551,12 @@ and unif (tequals:Program.tequals) (solutions:Program.tequals) =
 and changeType (s: string) (t: Program.t) (t1: Program.t) =
   match t1 with
   | T s1 when s = s1 -> t
+  | T s1 ->
+     begin
+       match t with
+       |Any -> Any
+       |_ -> t1
+     end
   | A s1 when s = s1 -> t
   | Operate(op,t11,t12) -> Operate (op , changeType s t t11 , changeType s t t12)
   | Return t11 -> Return (changeType s t t11) 
@@ -1779,10 +1785,12 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
     end
 
 and equal_type (t1:Program.t) (t2:Program.t) :bool =
-  (* Format.printf "@[t1=%a\nt2=%a\n@." pp_type t1 pp_type t2; *)
+  Format.printf "@[t1=%a\nt2=%a\n@." pp_type t1 pp_type t2;
   match t1,t2 with
   |T s1,T s2 when s1 = s2 -> true
   |A s1,A s2 when s1 = s2 -> true
+  |Any,t -> true
+  |t,Any -> true
   |Int,Int -> true
   |Double,Double -> true
   |Bool,Bool -> true
