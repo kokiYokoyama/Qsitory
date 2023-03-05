@@ -335,7 +335,7 @@ and block_eval (bk:Program.bk) (env:Program.env) (tenv:Program.tenv) :Program.ev
               |NoValueError ->
                 begin
                   match elist1 with
-                  |[] -> (Null,env1,tenv1)
+                  |[] -> (v1,env1,tenv1)
                   |_ -> block_eval (Block(elist1)) env1 tenv1
                 end
             end
@@ -872,38 +872,38 @@ and t (tn:int) :Program.t = T ("T" ^ string_of_int(tn))
 and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
   (* Format.printf "@[%a: (%a)@." pp_expr e pp_type (t n); *)
   match e with
-  |Int i -> ((((t n),Int)::tequals),n)
+  |Int i -> ((((t n),Int)::tequals),n+1)
 
-  |Double d -> ((((t n),Double)::tequals),n)
+  |Double d -> ((((t n),Double)::tequals),n+1)
 
-  |Bool b -> ((((t n),Bool)::tequals),n)
+  |Bool b -> ((((t n),Bool)::tequals),n+1)
 
-  |String s -> ((((t n),String)::tequals),n)
+  |String s -> ((((t n),String)::tequals),n+1)
 
   |Var s -> ((((t n),(find_type env s))::tequals),n+1)
 
   |Null -> ((((t n),Unit)::tequals),n+1)
 
-  |Nil -> ((((t n),(List(t (n+1))))::tequals),n+1)
+  |Nil -> ((((t n),(List(t (n+1))))::tequals),n+2)
 
   |Cons(e1,e2) ->
-    let (tequals1,n1) =expr_tval e1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) in
-    expr_tval e2 env tenv (((t (n1+1)),(t n))::tequals1) (n1+1)
+    let (tequals1,n1) = expr_tval e1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) in
+    expr_tval e2 env tenv (((t n1),(t n))::tequals1) n1
 
   |Tuple list ->
-    let (tlist,tequals1,n1) = expr_tuple_tval list env tenv tequals n in
+    let (tlist,tequals1,n1) = expr_tuple_tval list env tenv tequals (n+1) in
     (* print_tequals tequals1; *)
     ((((t n),(Tuple tlist))::tequals1),n1)
     
   |Declrt1(t1,s,e) -> expr_tval e env tenv (((t (n+1)),t1)::((t n),Unit)::tequals) (n+1)
                     
-  |Declrt2(t1,s) -> ((((t n),Unit)::tequals),n)
+  |Declrt2(t1,s) -> ((((t n),Unit)::tequals),(n+1))
                   
   |Formu(p,e) ->
     let (tequals1,n1) = expr_tval e env tenv ((t (n+1),t (n+2))::((t n),Unit)::tequals) (n+2) in
     begin
       try
-        pat_tval p env tenv ((t (n+1),t (n1+1))::tequals) (n1+1)
+        pat_tval p env tenv ((t (n+1),t n1)::tequals1) n1
       with
       |NoValueError -> (tequals1,n1)
     end
@@ -912,37 +912,37 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
     let (tequals1,n1) =  expr_tval e2 env tenv ((t (n+2),t1)::(t (n+1),t (n+2))::((t n),Unit)::tequals) (n+2) in
     begin
       try
-        expr_tval e1 env tenv ((t (n+1),t (n1+1))::tequals) (n1+1)
+        expr_tval e1 env tenv ((t (n+1),t n1)::tequals) n1
       with
       |NoValueError -> (tequals1,n1)
     end
     
   |AOperate(aop,e1,e2) ->
     let (tequals1,n1) = expr_tval e1 env tenv (((t n),Unit)::tequals) (n+1) in
-    let (tequals2,n2) = expr_tval e2 env tenv tequals1 (n1+1) in
-    (((t (n+1),Operate((changeaop_to_op aop),(t (n+1)),(t (n1+1))))::tequals2),n2)
+    let (tequals2,n2) = expr_tval e2 env tenv tequals1 n1 in
+    (((t (n+1),Operate((changeaop_to_op aop),(t (n+1)),(t n1)))::tequals2),n2)
 
   |SubFormu(e,p) ->
     let (tequals1,n1) = expr_tval e env tenv (((t n),Unit)::tequals) (n+1) in
-    let (tequals2,n2) = pat_tval p env tenv tequals1 (n1+1) in
-    (((t (n+1),Operate((Sub2:Program.op),(t (n+1)),(t (n1+1))))::tequals2),n2)
+    let (tequals2,n2) = pat_tval p env tenv tequals1 n1 in
+    (((t (n+1),Operate((Sub2:Program.op),(t (n+1)),(t n1)))::tequals2),n2)
     
   |Operate(op,e1,e2) -> 
     let (tequals1,n1) = expr_tval e1 env tenv tequals (n+1) in
-    let (tequals2,n2) = expr_tval e2 env tenv tequals1 (n1+1) in
-    ((((t n),Operate(op,(t (n+1)),(t (n1+1))))::tequals2),n2)
+    let (tequals2,n2) = expr_tval e2 env tenv tequals1 n1 in
+    ((((t n),Operate(op,(t (n+1)),(t n1)))::tequals2),n2)
     
   |Sub(e,p) ->
     let (tequals1,n1) = expr_tval e env tenv ((t n,t (n+1))::tequals) (n+1) in
-    let (tequals2,n2) = pat_tval p env tenv ((t (n+1),List (t (n1+1)))::tequals1) (n1+1) in
-    ((((t n),Operate((Sub2:Program.op),(t (n+1)),(t (n1+1))))::tequals2),n2)
+    let (tequals2,n2) = pat_tval p env tenv ((t (n+1),List (t n1))::tequals1) n1 in
+    ((((t n),Operate((Sub2:Program.op),(t (n+1)),(t n1)))::tequals2),n2)
     
   |Not e -> expr_tval e env tenv (((t (n+1)),Bool)::((t n),Bool)::tequals) (n+1)
           
   |If(e,bk1,bk2) ->
     let (tequals1,n1) = expr_tval e env tenv (((t (n+1)),Bool)::tequals) (n+1) in
-    let (tequals2,n2) = block_tval bk1 env tenv (((t n),(t (n1+1)))::tequals1) (n1+1) in
-    block_tval bk2 env tenv (((t n),(t (n2+1)))::tequals2) (n2+1)
+    let (tequals2,n2) = block_tval bk1 env tenv (((t n),(t n1))::tequals1) n1 in
+    block_tval bk2 env tenv (((t n),(t (n2+1)))::tequals2) n2
     
   |Match(e,patlist) ->
     let (tequals1,n1) = expr_tval e env tenv tequals (n+1) in
@@ -950,13 +950,13 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
       match patlist with
       |(p,bk)::[] ->
         let env1 = makeEnvMatch p (t (n+1)) env tequals1 in
-        let (tequals2,n2) = pat_tval p env1 tenv ((t (n+1),t (n1+1))::tequals1) (n1+1) in
-        block_tval bk env1 tenv (((t n),(t (n2+1)))::tequals2) (n2+1)
+        let (tequals2,n2) = pat_tval p env tenv ((t (n+1),t n1)::tequals1) n1 in
+        block_tval bk env1 tenv (((t n),(t n2))::tequals2) n2
       |(p,bk)::patlist1 ->
         let env1 = makeEnvMatch p (t (n+1)) env tequals1 in
-        let (tequals2,n2) = pat_tval p env1 tenv ((t (n+1),t (n1+1))::tequals1) (n1+1) in
-        let (tequals3,n3) = block_tval bk env1 tenv (((t n),(t (n2+1)))::tequals2) (n2+1) in
-        secondMatch_tval patlist1 env tenv tequals3 n3 (n+1) (n2+1)
+        let (tequals2,n2) = pat_tval p env1 tenv ((t (n+1),t n1)::tequals1) n1 in
+        let (tequals3,n3) = block_tval bk env1 tenv (((t n),(t n2))::tequals2) n2 in
+        secondMatch_tval patlist1 env tenv tequals3 n3 (n+1) n2
       |_ -> raise Error
     end
     
@@ -965,18 +965,28 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
       match paraList,argList with
       |[],[] -> (tequals,n)
       |s1::paraList1,e1::argList1 ->
-        let (tequals1,n1) = expr_tval e1 env tenv (((t (n+1)),List(t (n+2)))::((t n),Unit)::tequals) (n+1) in   
-        let env1 = makeEnvMatch (Cons(Var(s1),Nil)) (t (n+1)) env tequals1 in
-        let (env2,tequals2,n2) = secondFor_tval paraList1 argList1 env1 tenv tequals1 (n1+1) in
-        block_tval bk env2 tenv ((t (n2+1),Unit)::tequals2) (n2+1)
+        begin
+          match e1 with
+          |Var(s) ->
+            let (tequals1,n1) = expr_tval e1 env tenv (((t n),Unit)::tequals) (n+1) in
+            let env1 = makeEnvMatch (Cons(Var(s1),Nil)) (t (n+1)) env tequals1 in
+            let (env2,tequals2,n2) = secondFor_tval paraList1 argList1 env1 tenv tequals1 n1 in
+            block_tval bk env2 tenv ((t n2,Unit)::tequals2) n2
+
+          |_ ->
+            let (tequals1,n1) = expr_tval e1 env tenv (((t (n+1)),List(t (n+2)))::((t n),Unit)::tequals) (n+1) in   
+            let env1 = makeEnvMatch (Cons(Var(s1),Nil)) (t (n+1)) env tequals1 in
+            let (env2,tequals2,n2) = secondFor_tval paraList1 argList1 env1 tenv tequals1 n1 in
+            block_tval bk env2 tenv ((t n2,Unit)::tequals2) n2
+        end
       |_ -> raise Error
     end
    
   |For_dict(paraList,dict,bk) ->
-    let (tequals1,n1) = expr_tval dict env tenv (((t (n+1)),List(t (n+2)))::((t n),Unit)::tequals) (n+1) in
     begin
       match paraList,dict with
       |s1::paraList1,Cons(e1,e2) ->
+        let (tequals1,n1) = expr_tval dict env tenv (((t (n+1)),List(t (n+2)))::((t n),Unit)::tequals) (n+1) in
         begin
           match e1 with
           |Tuple elist ->
@@ -985,12 +995,13 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
               |t1::tlist1 ->
                 let env1 = makeEnvMatch (Var(s1)) t1 env tequals1 in
                 let env2 = secondForDict_tval paraList1 tlist1 env1 tequals1 in
-                block_tval bk env2 tenv ((t (n1+1),Unit)::tequals1) (n1+1)
+                block_tval bk env2 tenv ((t n1,Unit)::tequals1) n1
               |_ -> raise Error
             end
           |_ -> raise Error
         end
       |s1::paraList1,Var(s) ->
+        let (tequals1,n1) = expr_tval dict env tenv (((t n),Unit)::tequals) (n+1) in
         begin
           match find_type_tequals (t (n+1)) tequals1 with
           |List(Tuple(tlist)) ->
@@ -1000,7 +1011,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
                 let env1 = makeEnvMatch (Var(s1)) t1 env tequals1 in
                 (* 2要素目以降 *)
                 let env2 = secondForDict_tval paraList1 tlist1 env1 tequals1 in
-                block_tval bk env2 tenv ((t (n1+1),Unit)::tequals1) (n1+1)
+                block_tval bk env2 tenv ((t n1,Unit)::tequals1) n1
               |_ -> raise Error
             end
           |_ -> raise Error
@@ -1010,7 +1021,7 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
     
   |While(e1,bk) ->
     let (tequals1,n1) = expr_tval e1 env tenv (((t (n+1)),Bool)::((t n),Unit)::tequals) (n+1) in
-    block_tval bk env tenv tequals1 (n1+1)
+    block_tval bk env tenv tequals1 n1
     
   |Dfun(tp,s,bk) ->
     let env1 = (s,tp,None)::(find_remove env s []) in
@@ -1021,10 +1032,10 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
     let (tequals1,n1) = expr_tval e2 env tenv tequals (n+1) in
       begin
         try
-          expr_tval e1 env tenv ((t (n1+1), Fun(t (n+1), t n))::tequals1) (n1+1)
+          expr_tval e1 env tenv ((t n1, Fun(t (n+1), t n))::tequals1) n1
         with
         (* NoValueErrorが出るということは再帰関数以外ないため *)
-        |NoValueError -> (tequals1,(n1+1))
+        |NoValueError -> (tequals1,n1)
       end
     
   |Return e ->
@@ -1039,122 +1050,8 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
     let t1 = find_type_structEnv structEnv s in
     ((((t n),t1)::tequals1),n1)
     
-  |UseIns2(e1,e2) -> (tequals,n+1)
+  |UseIns2(e1,e2) -> (tequals,(n+1))
     
-  (* |Block(elist) ->
-   *   begin
-   *     (\* Format.printf "(%i)\n" n; *\)
-   *     match elist with
-   *     |[] -> (tequals,n)
-   *     |e::elist1 ->
-   *       begin
-   *         match e with
-   *         |Declrt1(t1,s,e1) ->
-   *           let lenv = (s,t1,None)::(find_remove (List.hd env) s []) in
-   *           let env1 = (lenv::env) in
-   *           let (tequals1,n1) = expr_tval e1 env1 tenv (((t (n+2)),t1)::((t (n+1)),Unit)::tequals) (n+2) in
-   *           begin
-   *             match elist1 with
-   *             |[] -> ((((t n),Unit)::tequals1),n1)
-   *             |_ -> secondBlock_tval elist1 env1 tenv tequals1 n1 n
-   *           end
-   *           
-   *         |Declrt2(t1,s) ->
-   *           let lenv = (s,t1,None)::(find_remove (List.hd env) s []) in
-   *           let env1 = (lenv::env) in
-   *           begin
-   *             match elist1 with
-   *             |[] -> ((((t n),Unit)::tequals),n)
-   *             |_ -> secondBlock_tval elist1 env1 tenv (((t n),Unit)::tequals) n n
-   *           end
-   *           
-   *         |Formu(p,e1) ->
-   *           let (tequals1,n1) = expr_tval e1 env tenv ((t (n+2),t (n+3))::((t (n+1)),Unit)::tequals) (n+3) in
-   *           begin
-   *             try
-   *               let (tequals2,n2) = pat_tval p env tenv ((t (n+2),t (n1+1))::tequals) (n1+1) in
-   *               begin
-   *                 match elist1 with
-   *                 |[] -> ((((t n),Unit)::tequals2),n2)
-   *                 |_ -> secondBlock_tval elist1 env tenv tequals2 n2 n
-   *               end
-   *             with
-   *             |NoValueError ->
-   *               let lenv = makeEnvMatch p (t (n+3)) (List.hd env) tequals1 in
-   *               let env1 = (lenv::env) in
-   *               begin
-   *                 match elist1 with
-   *                 |[] -> ((((t n),Unit)::tequals1),n1)
-   *                 |_ -> secondBlock_tval elist1 env1 tenv tequals1 n1 n
-   *               end
-   *           end
-   *           
-   *           
-   *         |Formu2(e1,e2) ->
-   *           let (tequals1,n1) =  expr_tval e2 env tenv ((t (n+2),t (n+3))::((t (n+1)),Unit)::tequals) (n+3) in
-   *           begin
-   *             try
-   *               let (tequals2,n2) = expr_tval e1 env tenv ((t (n+2),t (n1+1))::tequals) (n1+1) in
-   *               begin
-   *                 match elist1 with
-   *                 |[] -> ((((t n),Unit)::tequals2),n2)
-   *                 |_ -> secondBlock_tval elist1 env tenv tequals2 n2 n
-   *               end
-   *             with
-   *             |NoValueError ->
-   *               begin
-   *                 match e1 with
-   *                 |UseIns1(e3,fi_n) ->
-   *                   let (ins_n,fids) = splitSF e1 [] in
-   *                   let lenv = updateFids_tval ins_n fids (t (n+3)) (List.hd env) tenv tequals1 in
-   *                   let env1 = (lenv::env) in
-   *                   begin
-   *                     match elist1 with
-   *                     |[] -> ((((t n),Unit)::tequals1),n1)
-   *                     |_ -> secondBlock_tval elist1 env1 tenv tequals1 n1 n
-   *                   end
-   *                   
-   *                 |UseIns2(e3,e4) ->
-   *                   let (ins_n,fids) = splitSF2 e1 [] (List.hd env) tenv in
-   *                   let lenv = updateFids_tval ins_n fids (t (n+3)) (List.hd env) tenv tequals1 in
-   *                   let env1 = (lenv::env) in
-   *                   begin
-   *                     match elist1 with
-   *                     |[] -> ((((t n),Unit)::tequals1),n1)
-   *                     |_ -> secondBlock_tval elist1 env1 tenv tequals1 n1 n
-   *                   end
-   *                   
-   *                 |_ -> raise Error
-   *               end
-   *           end
-   *           
-   *         |AOperate(aop,e1,e2) ->
-   *           let (tequals1,n1) = expr_tval e1 env tenv (((t (n+1)),Unit)::tequals) (n+2) in
-   *           let (tequals2,n2) = expr_tval e2 env tenv tequals1 (n1+1) in
-   *           let (tequals3,n3) = (((t (n+2),(Operate((changeaop_to_op aop),(t (n+2)),(t (n1+1))):Program.t))::tequals2),n2) in
-   *           begin
-   *             match e1 with
-   *             |Var s ->
-   *               let lenv = ((s,(find_type_tequals (t (n1+1)) tequals3),None)::(List.hd env)) in
-   *               let env1 = (lenv::env) in
-   *               begin
-   *                 match elist1 with
-   *                 |[] -> ((((t n),Unit)::tequals3),n3)
-   *                 |_ -> secondBlock_tval elist1 env1 tenv tequals3 n3 n
-   *               end
-   *             |_ -> raise Error
-   *           end
-   * 
-   *         |_ ->
-   *           let (tequals1,n1) = expr_tval e env tenv tequals (n+1) in
-   *           begin
-   *             match elist1 with
-   *             |[] -> ((((t n),(t (n+1)))::tequals1),n1)
-   *             |_ -> secondBlock_tval elist1 env tenv tequals1 n1 n
-   *           end
-   *       end
-   *   end *)
-
 (* block_Tval------------------------------------------------------------ *)
 
 and block_tval (bk:Program.bk) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
@@ -1162,47 +1059,56 @@ and block_tval (bk:Program.bk) (env:Program.env) (tenv:Program.tenv) (tequals:Pr
   |Block elist ->
     begin
       match elist with
-      |[] -> (tequals,n)
       |e::elist1 ->
         begin
           match e with
           |Declrt1(t1,s,e1) ->
             let env1 = (s,t1,None)::(find_remove env s []) in
             let (tequals1,n1) = expr_tval e1 env1 tenv (((t (n+1)),t1)::tequals) (n+1) in
-            block_tval (Block(elist1)) env1 tenv (((t n),t (n1+1))::tequals1) (n1+1)
+            begin
+              match elist1 with
+              |[] -> ((((t n),t (n+1))::tequals1),n1)
+              |_ -> block_tval (Block(elist1)) env1 tenv (((t n),t n1)::tequals1) n1
+            end
           |Declrt2(t1,s) ->
             let env1 = (s,t1,None)::(find_remove env s []) in
-            block_tval (Block(elist1)) env1 tenv (((t n),t (n+1))::tequals) (n+1)
-          |_ ->    
-            let (tequals1,n1) = expr_tval e env tenv ((t (n+1),Unit)::tequals) (n+1) in
-            block_tval (Block(elist1)) env tenv (((t n),t (n1+1))::tequals1) (n1+1)
+            begin
+              match elist1 with
+              |[] -> ((((t n),Unit)::tequals),(n+1))
+              |_ -> block_tval (Block(elist1)) env1 tenv (((t n),t (n+1))::tequals) (n+1)
+            end
+          |_ ->
+            let (tequals1,n1) = expr_tval e env tenv tequals (n+1) in
+            begin
+              match elist1 with
+              |[] -> ((((t n),t (n+1))::tequals1),n1)
+              |_ -> block_tval (Block(elist1)) env tenv (((t n),t n1)::tequals1) n1
+            end
         end
+      |[] -> (tequals,n)
     end
         
-   
-    
-
 (* Pat_Tval--------------------------------------------------------------- *)
 
 and pat_tval (p:Program.p) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) :Program.tvalResult =
   match p with
-  |Int i -> ((((t n),Int)::tequals),n)
+  |Int i -> ((((t n),Int)::tequals),(n+1))
 
-  |Double d -> ((((t n),Double)::tequals),n)
+  |Double d -> ((((t n),Double)::tequals),(n+1))
 
-  |Bool b -> ((((t n),Bool)::tequals),n)
+  |Bool b -> ((((t n),Bool)::tequals),(n+1))
 
-  |String s -> ((((t n),String)::tequals),n)
+  |String s -> ((((t n),String)::tequals),(n+1))
 
-  |Var s -> ((((t n),(find_type env s))::tequals),n+1)
+  |Var s -> (tequals,(n+1))
 
-  |Nil -> ((((t n),(List (t (n+1))))::tequals),n+1)
+  |Nil -> ((((t n),(List (t (n+1))))::tequals),(n+2))
 
-  |Wild -> ((((t n),(t (n+1)))::tequals),n+1)
+  |Wild -> ((((t n),(t (n+1)))::tequals),(n+2))
 
   |Cons(p1,p2) ->
     let (tequals1,n1) = pat_tval p1 env tenv (((t n),List (t (n+1)))::tequals) (n+1) in
-    pat_tval p2 env tenv (((t (n1+1)),(t n))::tequals1) (n1+1)
+    pat_tval p2 env tenv (((t (n1+1)),(t n))::tequals1) n1
 
   |Tuple list ->
     let (tlist,tequals1,n1) = pat_tuple_tval list env tenv tequals n in
@@ -1275,12 +1181,12 @@ and expr_tuple_tval (elist:Program.e list) (env:Program.env) (tenv:Program.tenv)
   begin
     match elist with
     |e::[] ->
-      let (tequals1,n1) = expr_tval e env tenv tequals (n+1) in
-      (((t (n+1))::[]),tequals1,n1)
+      let (tequals1,n1) = expr_tval e env tenv tequals n in
+      (((t (n))::[]),tequals1,n1)
     |e::elist1 ->
-      let (tequals1,n1) = expr_tval e env tenv tequals (n+1) in
+      let (tequals1,n1) = expr_tval e env tenv tequals n in
       let (tlist,tequals2,n2) =  expr_tuple_tval elist1 env tenv tequals1 n1 in
-      (((t (n+1))::[])@tlist,tequals2,n2)
+      (((t (n))::[])@tlist,tequals2,n2)
     |_ -> raise Error
   end
 
@@ -1513,12 +1419,12 @@ and secondMatch_tval (patlist:(Program.p * Program.bk) list) (env:Program.env) (
   match patlist with
   |(p,bk)::[] ->
     let env1 = makeEnvMatch p (t np) env tequals in
-    let (tequals1,n1) = pat_tval p env1 tenv ((t np,t (n+1))::tequals) (n+1) in
-    block_tval bk env1 tenv (((t (n1+1)),(t ne))::tequals1) (n1+1)
+    let (tequals1,n1) = pat_tval p env1 tenv ((t np,t n)::tequals) n in
+    block_tval bk env1 tenv (((t n1),(t ne))::tequals1) n1
   |(p,bk)::patlist1 ->
     let env1 = makeEnvMatch p (t np) env tequals in
-    let (tequals1,n1) = pat_tval p env1 tenv ((t np,t (n+1))::tequals) (n+1) in
-    let (tequals2,n2) = block_tval bk env1 tenv (((t (n1+1)),(t ne))::tequals1) (n1+1) in
+    let (tequals1,n1) = pat_tval p env1 tenv ((t np,t n)::tequals) n in
+    let (tequals2,n2) = block_tval bk env1 tenv (((t n1),(t ne))::tequals1) n1 in
     secondMatch_tval patlist1 env tenv tequals2 n2 np ne
   |_ -> raise Error
               
@@ -1526,11 +1432,20 @@ and secondFor_tval (paraList:string list) (argList:Program.e list) (env:Program.
   match paraList,argList with
   |[],[] -> (env,tequals,n)
   |s1::paraList1,e1::argList1 ->
-    let (tequals1,n1) = expr_tval e1 env tenv (((t (n+1)),List(t (n+2)))::tequals) (n+1) in   
-    let env1 = makeEnvMatch (Cons(Var(s1),Nil)) (t (n+1)) env tequals1 in
-    secondFor_tval paraList1 argList1 env1 tenv tequals1 (n1+1)
+    begin
+      match e1 with
+      |Var(s) ->
+        let (tequals1,n1) = expr_tval e1 env tenv tequals n in
+        let env1 = makeEnvMatch (Cons(Var(s1),Nil)) (t n) env tequals1 in
+        secondFor_tval paraList1 argList1 env1 tenv tequals1 n1
+        
+      |_ ->
+        let (tequals1,n1) = expr_tval e1 env tenv (((t n),List(t (n+1)))::tequals) n in   
+        let env1 = makeEnvMatch (Cons(Var(s1),Nil)) (t (n+1)) env tequals1 in
+        secondFor_tval paraList1 argList1 env1 tenv tequals1 n1
+    end
   |_ -> raise Error
-          
+      
 and dict_tval (e:Program.e) :Program.t =
   let (tequals1,n1) = expr_tval e [] [] [] 0 in
   find_type_tequals (t 0) tequals1
@@ -1546,8 +1461,8 @@ and secondForDict_tval (paraList:string list) (tlist:Program.t list) (env:Progra
 (* Unif------------------------------------------------------------------- *)
 
 and unif (tequals:Program.tequals) (solutions:Program.tequals) =
-  Format.printf "%a_____________________\n" (fun _ -> print_tequals) tequals;
-  Format.printf "%a\n" (fun _ -> print_tequals) solutions;
+  (* Format.printf "%a_____________________\n" (fun _ -> print_tequals) tequals;
+   * Format.printf "%a\n" (fun _ -> print_tequals) solutions; *)
   match tequals with
   |[] -> Some solutions
 
@@ -1910,12 +1825,61 @@ and arrange_EnvAndTenv (e:Program.e) (solutions:Program.tequals) (env:Program.en
       |Var s -> (((s,(find_type_solutions (t 1) solutions),(find_op env s))::(find_remove env s [])),tenv)
       |_ -> raise Error
     end
- 
+  (* |Block elist -> arrange_EnvAndTenv_block (Block(elist)) solutions env tenv 0 *)
+   
   (* |Dstruct(s,bk) ->
    *   let structData = makeStructTenv bk in
    *   (env,(((MT s),Struct(structData))::tenv)) *)
 
   |_ -> (env,tenv)
+
+(* and arrange_EnvAndTenv_block (e:Program.e) (solutions:Program.tequals) (env:Program.env) (tenv:Program.tenv) (tn:int) :(Program.env * Program.tenv * int) =
+ *   match e with
+ *   |AOperate(aop,e1,e2) -> (\* print_tequals solutions; *\)
+ *     begin
+ *       match e1 with
+ *       |Var s ->
+ *         let env1 = ((s,(find_type_solutions (t (tn+1)) solutions),(find_op env s))::(find_remove env s [])) in
+ *         arrange_EnvAndTenv_block e2 solutions env1 tenv (tn+1) in  
+ *       |_ -> raise Error
+ *     end
+ *    
+ *   |Cons(e1,e2) ->
+ *     let (env1,tenv1,tn1) = arrange_EnvAndTenv_block e1 solutions env tenv (tn+1) in
+ *     arrange_EnvAndTenv_block e2 solutions env tenv tn1
+ * 
+ *   |Tuple list ->
+ *     let tn1 = (tn+1) + (List.length list) in
+ *     (env,tenv,tn1)
+ * 
+ *   |Declrt1(t1,s,e1) ->
+ *     arrange_EnvAndTenv_block e1 solutions env tenv (tn+1)
+ * 
+ *   |Formu(p,e1) ->
+ *     let env1 = makeEnvMatch p (t (tn+1)) env solutions in
+ *     arrange_EnvAndTenv_block e1 solutions env1 tenv (tn+2)
+ * 
+ * 
+ *   |AOperate(aop,e1,e2) ->
+ *     begin
+ *       match e1 with
+ *       |Var s ->
+ *         let env1 = ((s,(find_type_solutions (t (tn+1)) solutions),(find_op env s))::(find_remove env s [])) in
+ *         arrange_EnvAndTenv_block  solutions env1 tenv (tn+1)
+ *       |_ -> raise Error
+ *     end
+ * 
+ *    |Block elist ->
+ *     begin
+ *       match elist with
+ *       |[] -> (env,tenv)
+ *       |e0::elist1 ->
+ *         let tn1 = arrange_EnvAndTenv_block e0 solutions env tenv (tn+1) in
+ *         arrange_EnvAndTenv_block (Block(elist1)) solutions env tenv tn1
+ *     end
+ *   
+ *    
+ *   |(env,tenv,(tn+1)) *)
 
 (* arrange_EnvAndTenv's functions **************************************** *)
 

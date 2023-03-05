@@ -1,3 +1,4 @@
+/*
 a=1
 
 string : b = "B"
@@ -31,6 +32,7 @@ n = 4 mod 2
 o = "string" + 1
 
 p = not 1<2
+
 q = 2
 if 1<2 :
    q=1
@@ -46,7 +48,7 @@ match r1 :
 
 int : s
 s1 = (1,2,3)
-match t1 :
+match s1 :
   |(a,b,_) -> s = a
 
 t=[]
@@ -71,13 +73,13 @@ def function0 (int: x,int: y) :
 w=function0(1) (2)
 
 def function1 (int: x,int: y) :
-   z=x+y
+   int : z=x+y
    return (x,y,z)
 
 (x,y,z)=function1(2) (3)
 
 def function1 (int: x,int: y) :
-   z=x+y
+   int : z=x+y
    if z<10 :
      function1 (z) (5)
    else :
@@ -95,7 +97,7 @@ def g (int: x) :
    f (x)
 
 bb = g (10)
-
+*/
 struct AA :
    int : x
    int : y
@@ -103,11 +105,11 @@ struct AA :
 struct BB :
    AA : z
 
-Struct2 : cc1
+struct BB : cc1
 cc1.z.x = 1
 cc = cc1.z.x
 
-Struct2 : dd1
+struct BB : dd1
 "dd1".."z".."x" = 1
 dd = "z1".."z".."x"
 

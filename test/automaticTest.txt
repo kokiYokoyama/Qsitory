@@ -7,7 +7,7 @@ x = 1
 string : name = "program"
 (name,since,where) = ("Qsitory",2022,"Japan")
 #Value:()
-#EEnv:[(name,String,Qsitory),(since,Int,2022),(where,String,Japan)]
+#EEnv:[(name,String,"Qsitory"),(since,Int,2022),(where,String,"Japan")]
 #TEnv:[]
 
 l1 = []
