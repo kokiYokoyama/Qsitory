@@ -345,7 +345,7 @@ and block_eval (bk:Program.bk) (env:Program.env) (tenv:Program.tenv) :Program.ev
             end
           with
           |NoValueError ->
-            Format.printf "%a\n" pp_env env;
+            (* Format.printf "%a\n" pp_env env; *)
             block_eval (Block(elist1)) env tenv
         end
     end
@@ -1516,6 +1516,7 @@ and unif (tequals:Program.tequals) (solutions:Program.tequals) =
   |(Bool,Bool)::tequals1 -> unif tequals1 solutions
   |(String,String)::tequals1 -> unif tequals1 solutions
   |(Unit,Unit)::tequals1 -> unif tequals1 solutions
+  |(MT s1,MT s2)::tequals1 when String.equal s1 s2 -> unif tequals1 solutions
   |(t,Operate(op,t1,t2))::tequals1 ->
     begin
       try
