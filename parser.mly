@@ -285,6 +285,8 @@ patexp:
             | None -> packExp @@ P.Declrt2(tp,x)
             | Some q -> packExp @@ P.Declrt1(tp,x,unpackExp q)
           }
+  | tp = qtype; COLON; eDot = lval_dot_exp; EQ; q = patexp
+          { packExp @@ P.Formu2(tp,eDot,unpackExp q) }
 /// If-expression ## if e : block (else if e: block )* | (else : block)? )
   | IF; q = patexp; COLON; eeThen = py_suite; nonempty_list(NEWLINE); ELSE; COLON; eeElse = py_suite
         { packExp @@ P.If (unpackExp q, P.Block eeThen, P.Block eeElse) }
@@ -303,7 +305,19 @@ patexp:
 /// Pass
   | PASS { packExp @@ Null }
 ;
-
+lval_dot_exp:
+  | aa = IDENT0; ssFld = nonempty_list(DOT; sFld = IDENT0 {sFld})
+         { List.fold_left (fun e sFld -> P.UseIns1(e,sFld)) (eVar aa) ssFld }
+  | aa = IDENT0; eeFld = nonempty_list(DOTDOT; eFld = lval_dotdot_field {eFld})
+         { List.fold_left (fun e eFld -> P.UseIns2(e,eFld)) (eVar aa) eeFld }
+  | s = STRING; eeFld = nonempty_list(DOTDOT; eFld = lval_dotdot_field {eFld})
+         { List.fold_left (fun e eFld -> P.UseIns2(e,eFld)) (eString s) eeFld }
+;
+lval_dotdot_field:
+  | sFld = STRING { eString sFld }
+  | xFld = IDENT0 { eVar xFld }
+  | LPAREN; e = patexp; RPAREN { unpackExp e }
+;
 /// block (Python-style, See: https://docs.python.org/ja/3/reference/compound_stmts.html)
 py_stmt_list:
   | e = expression; ee = list(SEMICOLON; e = expression { e }) { e::ee }
@@ -335,8 +349,8 @@ match_clauses_suite:
   | option(BAR); cc = separated_nonempty_list(BAR, c = match_clause_simple { c }) { cc }
   | NEWLINE; INDENT; cc = nonempty_list(BAR; c = match_clause {c}); DEDENT { cc }
 ;
-value_struct_one:
-  | LPAREN; fld = IDENT0; COMMA; tp = ctype; COMMA; v = value { (fld,tp,v) }
+//value_struct_one:
+//  | LPAREN; fld = IDENT0; COMMA; tp = ctype; COMMA; v = value { (fld,tp,v) }
 value:
   | n = INT    { vInt n }
   | d = FLOAT  { vDouble d }
@@ -402,6 +416,7 @@ command_one:
   | COMeenv;  e = eenv;  nonempty_list(NEWLINE) { Result.setEenv result e }
   | COMtenv;  t = tenv;  nonempty_list(NEWLINE) { Result.setTenv result t }
   | COMvalue; v = value; nonempty_list(NEWLINE) { Result.setValue result v }
+  | COMcheck; nonempty_list(NEWLINE) {  }
 ;
 manual_test:
   | list(command_one) { () }
