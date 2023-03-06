@@ -58,7 +58,8 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
     let (v1,env1,tenv1) = expr_eval e env tenv in
     begin
       match patternMatch_update p v1 env1 with
-      |Some env2 -> (Null,env2,tenv1)
+      |Some env2 ->
+        (Null,env2,tenv1)
       |None -> raise Error
     end
     
@@ -150,7 +151,6 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
     begin
       match plist0 with
       |(p,bk)::[] ->
-        (* print_env env1; *)
         begin
           match patternMatch_update p v1 env1 with
           |None -> raise NoMatchPatternError
@@ -189,9 +189,11 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
               let env3 = removeEnv env2 paraList in
               (Null,env3,tenv2)
             end
-          |false -> expr_roopFor_eval paraList vlist2 bk env2 tenv2
+          |false ->
+            expr_roopFor_eval paraList vlist2 bk env2 tenv2
         end
-      |s::paraList1,(Nil)::vlist1 -> expr_secondFor_eval paraList1 vlist1 bk (updateEnv env1 s (Any:Program.t) None) tenv1
+      |s::paraList1,(Nil)::vlist1 ->
+        expr_secondFor_eval paraList1 vlist1 bk (updateEnv env1 s (Any:Program.t) None) tenv1
       |_ -> raise Error
     end
     
@@ -324,6 +326,7 @@ and block_eval (bk:Program.bk) (env:Program.env) (tenv:Program.tenv) :Program.ev
   |Block elist ->
     begin
       match elist with
+      |[] -> (Null,env,tenv)
       |e::elist1 ->
         begin
           try
@@ -341,9 +344,10 @@ and block_eval (bk:Program.bk) (env:Program.env) (tenv:Program.tenv) :Program.ev
                 end
             end
           with
-          |NoValueError -> block_eval (Block(elist1)) env tenv
+          |NoValueError ->
+            Format.printf "%a\n" pp_env env;
+            block_eval (Block(elist1)) env tenv
         end
-      |_ -> raise Error
     end
                  
 (* eval's function!------------------------------------------------------- *)
@@ -358,8 +362,8 @@ and find (env:Program.env) (s:string) :Program.v =
 and find_type_tenv (tenv:Program.tenv) (st_n:string) (fi_n:string) :Program.t =
   match tenv with
   |((MT(st_n1),Struct(structEnv))::tenv1) ->
-    Format.printf "(@[%a\n@." pp_tenv tenv;
-    Format.printf "構造体(@[(%s,%s)\n@." st_n st_n1;
+    (* Format.printf "(@[%a\n@." pp_tenv tenv;
+     * Format.printf "構造体(@[(%s,%s)\n@." st_n st_n1; *)
     if String.equal st_n st_n1 then find_type_tenv2 structEnv fi_n else find_type_tenv tenv1 st_n fi_n
   |[] -> raise NoValueError
   |_ -> raise Error
@@ -367,7 +371,7 @@ and find_type_tenv (tenv:Program.tenv) (st_n:string) (fi_n:string) :Program.t =
 and find_type_tenv2 (structEnv:Program.structEnv) (fi_n:string) :Program.t =
   match structEnv with
   |((fi_n1,t)::structEnv1) ->
-    Format.printf "詳細(@[(%s,%s,%a)\n@." fi_n fi_n1 pp_type t;
+    (* Format.printf "詳細(@[(%s,%s,%a)\n@." fi_n fi_n1 pp_type t; *)
     if String.equal fi_n fi_n1 then t else find_type_tenv2 structEnv1 fi_n
   |[] -> raise Error
                             
@@ -395,9 +399,11 @@ and findMyType (tenv:Program.tenv) (list:(string * Program.t) list) (flist:Progr
   |[] -> flist
 
 and find_remove (env:Program.env) (s:string) (fenv:Program.env) :Program.env =
+  (* Format.printf "env:%a\n" pp_env env;
+   * Format.printf "fenv:%a\n\n" pp_env fenv; *)
   match env with
-  |(s1,t,v)::env1 -> if String.equal s s1 then (fenv@env1) else find_remove env1 s ((s1,t,v)::fenv)
-  |[] -> fenv
+  |(s1,t,v)::env1 -> if String.equal s s1 then (env1@(List.rev fenv)) else find_remove env1 s ((s1,t,v)::fenv)
+  |[] -> List.rev fenv
 
 and find_type_remove (env:Program.env) (fenv:Program.env) :Program.env =
   (* print_env fenv; *)
@@ -858,7 +864,8 @@ and expr_roopFor_eval (paraList:string list) (vlist:Program.v list) (bk:Program.
             end
         end
     end
-  |s::paraList1,(Nil)::vlist1 -> expr_secondFor_eval paraList1 vlist1 bk ((s,Any,None)::(find_remove env s [])) tenv
+  |s::paraList1,(Nil)::vlist1 ->
+    expr_secondFor_eval paraList1 vlist1 bk ((s,Any,None)::(find_remove env s [])) tenv
   |_ -> raise Error
 
 and expr_roopFor_dict_eval (paraList:string list) (v:Program.v) (bk:Program.bk) (env:Program.env) (tenv:Program.tenv) =
@@ -1499,8 +1506,8 @@ and secondForDict_tval (paraList:string list) (tlist:Program.t list) (env:Progra
 (* Unif------------------------------------------------------------------- *)
 
 and unif (tequals:Program.tequals) (solutions:Program.tequals) =
-  Format.printf "%a_____________________\n" (fun _ -> print_tequals) tequals;
-  Format.printf "%a\n" (fun _ -> print_tequals) solutions;
+  (* Format.printf "%a_____________________\n" (fun _ -> print_tequals) tequals;
+   * Format.printf "%a\n" (fun _ -> print_tequals) solutions; *)
   match tequals with
   |[] -> Some solutions
 
@@ -1785,7 +1792,7 @@ and operateType (t1:Program.t) (t2:Program.t) (op:Program.op) :Program.t =
     end
 
 and equal_type (t1:Program.t) (t2:Program.t) :bool =
-  Format.printf "@[t1=%a\nt2=%a\n@." pp_type t1 pp_type t2;
+  (* Format.printf "@[t1=%a\nt2=%a\n@." pp_type t1 pp_type t2; *)
   match t1,t2 with
   |T s1,T s2 when s1 = s2 -> true
   |A s1,A s2 when s1 = s2 -> true
