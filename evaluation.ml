@@ -178,7 +178,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
       |[],[] -> block_eval bk env1 tenv1
       |s::paraList1,(Cons(v1,v2))::vlist1 -> (* print_value (Cons(v1,v2)); *)
         (* 2要素目 *)
-        let (v2,env2,tenv2) = expr_secondFor_eval paraList1 vlist1 bk (updateEnv env1 s (Any:Program.t) (Some v1)) tenv1 in
+        let (v2,env2,tenv2) = expr_secondFor_eval paraList1 vlist1 bk (addlocalVar env1 s (Some v1)) tenv1 in
         (* 2周目以降 *)
         let vlist2 = removeConsHd vlist [] in
         begin
@@ -186,14 +186,15 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
           |true ->
             begin
               (* ループ終了 *)
-              let env3 = removeEnv env2 paraList in
+              let env3 = deletelocalVar env2 [] in
               (Null,env3,tenv2)
             end
           |false ->
-            expr_roopFor_eval paraList vlist2 bk env2 tenv2
+            let env3 = deletelocalVar env2 [] in
+            expr_roopFor_eval paraList vlist2 bk env3 tenv2
         end
       |s::paraList1,(Nil)::vlist1 ->
-        expr_secondFor_eval paraList1 vlist1 bk (updateEnv env1 s (Any:Program.t) None) tenv1
+        expr_secondFor_eval paraList1 vlist1 bk (addlocalVar env1 s None) tenv1
       |_ -> raise Error
     end
     
@@ -208,7 +209,7 @@ let rec expr_eval (e:Program.e) (env:Program.env) (tenv:Program.tenv) :Program.e
         let env2 = get_dict_item paraList v2 env in
         let (v4,env3,tenv2) = block_eval bk env2 tenv1 in
         let (v5,env4,tenv3) = expr_roopFor_dict_eval paraList v3 bk env3 tenv2 in
-        let env5 = removeEnv env4 paraList in
+        let env5 = deletelocalVar env4 [] in
         (Null,env5,tenv3)                   
       |_ -> raise Error
     end
@@ -429,11 +430,11 @@ and find_remove_tenv (tenv:Program.tenv) (sn:string) (ftenv:Program.tenv) :Progr
   |_ -> raise Error
 
 
-and removeEnv (env:Program.env) (paraList:string list) :Program.env =
-  match paraList with
-  |s::[] -> find_remove env s []
-  |s::paraList1 -> removeEnv (find_remove env s []) paraList1
-  |_ -> raise Error
+(* and removeEnv (env:Program.env) (paraList:string list) :Program.env =
+ *   match paraList with
+ *   |s::[] -> find_remove env s []
+ *   |s::paraList1 -> removeEnv (find_remove env s []) paraList1
+ *   |_ -> raise Error *)
 
 and removeConsHd (vlist:Program.v list) (fvlist:Program.v list) :(Program.v list) =
   match vlist with
@@ -444,6 +445,15 @@ and removeConsHd (vlist:Program.v list) (fvlist:Program.v list) :(Program.v list
 
 and updateEnv (env:Program.env) (s:string) (t:Program.t) (v:Program.v option) :Program.env =
   ((s,t,v)::(find_remove env s []))
+
+and addlocalVar (env:Program.env) (s:string) (v:Program.v option) :Program.env =
+  ((s,(Any:Program.t),v)::env)
+
+and deletelocalVar (env:Program.env) (fenv:Program.env) :Program.env =
+  match env with
+  |[] -> List.rev fenv
+  |(s,Any,v)::env1 -> deletelocalVar env1 fenv
+  |(s,t,v)::env1 -> deletelocalVar env1 ((s,t,v)::fenv)
 
 and updateFids (ins_n:string) (fids:string list) (v:Program.v) (env:Program.env) (tenv:Program.tenv) :Program.env =
   match find env ins_n with
@@ -833,9 +843,9 @@ and expr_secondFor_eval (paraList:string list) (vlist:Program.v list) (bk:Progra
   (* 全要素完了 *)
   |[],[] -> block_eval bk env tenv
           
-  |s::paraList1,(Cons(v1,v2))::vlist1 -> expr_secondFor_eval paraList1 vlist1 bk (updateEnv env s (Any:Program.t) (Some v1)) tenv
+  |s::paraList1,(Cons(v1,v2))::vlist1 -> expr_secondFor_eval paraList1 vlist1 bk (addlocalVar env s (Some v1)) tenv
                                        
-  |s::paraList1,(Nil)::vlist1 -> expr_secondFor_eval paraList1 vlist1 bk (updateEnv env s (Any:Program.t) None) tenv
+  |s::paraList1,(Nil)::vlist1 -> expr_secondFor_eval paraList1 vlist1 bk (addlocalVar env s None) tenv
                                
   |_ -> raise Error
 
@@ -846,7 +856,7 @@ and expr_roopFor_eval (paraList:string list) (vlist:Program.v list) (bk:Program.
   |s::paraList1,(Cons(v1,v2))::vlist1 ->
     begin
       (* 2要素目 *)
-      match expr_secondFor_eval paraList1 vlist1 bk ((s,Any,Some v1)::(find_remove env s [])) tenv with
+      match expr_secondFor_eval paraList1 vlist1 bk (addlocalVar env s (Some(v1))) tenv with
       |(v2,env2,tenv2) ->
         begin
           (* 2周目以降 *)
@@ -857,15 +867,17 @@ and expr_roopFor_eval (paraList:string list) (vlist:Program.v list) (bk:Program.
               |true ->
                 begin
                   (* ループ終了 *)
-                  match removeEnv env2 paraList with
-                  |env3 -> (Null,env3,tenv2)
+                  let env3 = deletelocalVar env2 [] in
+                  (Null,env3,tenv2)
                 end
-              |false -> expr_roopFor_eval paraList vlist2 bk env2 tenv2
+              |false ->
+                let env3 = deletelocalVar env2 [] in
+                expr_roopFor_eval paraList vlist2 bk env3 tenv2
             end
         end
     end
   |s::paraList1,(Nil)::vlist1 ->
-    expr_secondFor_eval paraList1 vlist1 bk ((s,Any,None)::(find_remove env s [])) tenv
+    expr_secondFor_eval paraList1 vlist1 bk (addlocalVar env s None) tenv
   |_ -> raise Error
 
 and expr_roopFor_dict_eval (paraList:string list) (v:Program.v) (bk:Program.bk) (env:Program.env) (tenv:Program.tenv) =
@@ -889,7 +901,7 @@ and expr_roopFor_dict_eval (paraList:string list) (v:Program.v) (bk:Program.bk) 
 and get_dict_item (paraList:string list) (tuple:Program.v) (env:Program.env) :Program.env =
   match paraList,tuple with
   |[],Tuple ([]) ->env
-  |s::paraList1,Tuple (v::vlist1) -> get_dict_item paraList1 (Tuple (vlist1)) ((s,Any,Some v)::(find_remove env s [])) 
+  |s::paraList1,Tuple (v::vlist1) -> get_dict_item paraList1 (Tuple (vlist1)) (addlocalVar env s (Some v))
   |_ -> raise Error
 
 and makeStructEnv (s:string) (tenv:Program.tenv) (flist:Program.env) :Program.env =
@@ -955,12 +967,21 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
     end
     
   |Formu2(t1,e1,e2) ->
-    let (tequals1,n1) =  expr_tval e2 env tenv ((t (n+2),t1)::(t (n+1),t (n+2))::((t n),Unit)::tequals) (n+2) in
     begin
-      try
-        expr_tval e1 env tenv ((t (n+1),t n1)::tequals1) n1
-      with
-      |NoValueError -> (tequals1,n1)
+      match e1 with
+      |UseIns1(e3,fi_n) ->
+        let (tequals1,n1) =  expr_tval e2 env tenv ((t (n+2),t1)::(t (n+1),t (n+2))::((t n),Unit)::tequals) (n+2) in
+        begin
+          try
+            expr_tval e1 env tenv ((t (n+1),t n1)::tequals1) n1
+          with
+          |NoValueError -> (tequals1,n1)
+        end
+      |UseIns2(e3,e4) ->
+        let (tequals1,n1) =  expr_tval e2 env tenv ((t (n+1),t1)::((t n),Unit)::tequals) (n+1) in
+        let (tequals2,n2) = expr_tval e4 env tenv ((t n1,String)::tequals1) n1 in
+        check_field_string  e3 env tenv tequals2 n2
+      |_ -> raise Error
     end
     
   |AOperate(aop,e1,e2) ->
@@ -1502,6 +1523,13 @@ and secondForDict_tval (paraList:string list) (tlist:Program.t list) (env:Progra
     let env1 =  makeEnvMatch (Var(s1)) t1 env tequals in
     secondForDict_tval paraList1 tlist1 env1 tequals
   |_ -> raise Error
+
+and check_field_string (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Program.tequals) (n:int) =
+  match e with
+  |UseIns2(e1,e2) ->
+    let (tequals1,n1) = expr_tval e2 env tenv ((t n,String)::tequals) n in
+    check_field_string e1 env tenv tequals1 n1
+  |_ -> expr_tval e env tenv ((t n,String)::tequals) n
 
 (* Unif------------------------------------------------------------------- *)
 

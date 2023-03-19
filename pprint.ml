@@ -61,7 +61,7 @@ and pp_value fmt (v:Program.v) =
   | Nil -> pp_string fmt "[]" 
   | Cons(v1,v2) -> F.fprintf fmt "%a::%a" pp_value v1 pp_value v2
   | Tuple list -> F.fprintf fmt "(%a)" (pp_list "" "," pp_value) list
-  | FunClos(env,s,bk) -> F.fprintf fmt "FunClos(%a,%s,%a)" pp_env env s pp_block bk
+  | FunClos(env,s,bk) -> F.fprintf fmt "FunClos([%a],%s,%a)" pp_env env s pp_block bk
   | Struct (s,list) -> F.fprintf fmt "Struct(%s,[%a])" s pp_env list
 
 (* and pp_value_struct1 fmt (s,t,v) = pp_tuple3 pp_string pp_type pp_value fmt (s,t,v) *)
