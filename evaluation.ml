@@ -1117,7 +1117,9 @@ and expr_tval (e:Program.e) (env:Program.env) (tenv:Program.tenv) (tequals:Progr
     let t1 = find_type_structEnv structEnv s in
     ((((t n),t1)::tequals1),n1)
     
-  |UseIns2(e1,e2) -> (tequals,(n+1))
+  |UseIns2(e1,e2) ->
+    Format.printf "制約リスト1%a" pp_tequals tequals;
+    (tequals,(n+1))
     
 (* block_Tval------------------------------------------------------------ *)
 
@@ -1332,7 +1334,7 @@ and makeEnvMatch2 (p:Program.p) (t:Program.t) (env:Program.env) :Program.env =
           match makeEnvMatch2 p1 t2 env with
           |env1 -> makeEnvMatch2 p2 t env1
         end
-      |_ -> raise Error
+      |_ -> makeEnvMatch2 p1 t env
     end
   |Tuple(plist) ->
     begin
@@ -1506,8 +1508,9 @@ and secondFor_tval (paraList:string list) (argList:Program.e list) (env:Program.
         secondFor_tval paraList1 argList1 env1 tenv tequals1 n1
         
       |_ ->
-        let (tequals1,n1) = expr_tval e1 env tenv (((t n),List(t (n+1)))::tequals) n in   
+        let (tequals1,n1) = expr_tval e1 env tenv (((t n),List(t (n+1)))::tequals) n in
         let env1 = makeEnvMatch (Cons(Var(s1),Nil)) (t (n+1)) env tequals1 in
+        Format.printf "制約リスト%a" pp_env env1;
         secondFor_tval paraList1 argList1 env1 tenv tequals1 n1
     end
   |_ -> raise Error
